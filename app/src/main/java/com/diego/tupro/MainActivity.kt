@@ -26,7 +26,7 @@ fun IniciarApp() {
 }
 
 @Preview(showSystemUi = true)
-@Composable
+@Composable  
 fun GreetingPreview() {
     TuproTheme(darkTheme = false) {
         IniciarApp()

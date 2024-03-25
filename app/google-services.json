@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "707739853008",
+    "project_id": "tupro-diegodelafuente",
+    "storage_bucket": "tupro-diegodelafuente.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:707739853008:android:2343bcaf020a6011057ed5",
+        "android_client_info": {
+          "package_name": "com.diego.tupro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjD7qT_gR2ENaARTEqSUez2gquSGeeBjE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -26,9 +26,11 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -56,6 +58,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -184,7 +188,7 @@ fun FilaInicio(){
         modifier = Modifier
             .fillMaxWidth()
             .background(colorScheme.secondaryContainer)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -196,8 +200,13 @@ fun FilaInicio(){
                 tint = colorScheme.onSecondaryContainer
             )
         }
-        Button(onClick = { /* Haz algo aquí */ }) {
-            Text("Mi Botón")
+        ElevatedButton(
+            onClick = {/* haz algo */},
+            elevation = ButtonDefaults.buttonElevation(4.dp),
+            colors = ButtonDefaults.buttonColors(colorScheme.surfaceVariant)
+        ){
+            Text(
+                text = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), color = colorScheme.onSurfaceVariant, fontSize = 20.sp)
         }
         IconButton(onClick = { /* Haz algo aquí */ }) {
             Icon(

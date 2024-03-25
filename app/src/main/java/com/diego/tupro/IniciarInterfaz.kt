@@ -48,8 +48,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.toLowerCase
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import kotlin.system.exitProcess
@@ -68,13 +70,12 @@ fun IniciarInterfaz(navController: NavController) {
 @Composable
 fun BarraSuperior() {
     TopAppBar(
-        title = { Text("hola") },
+        title = { Text("TuPro", fontSize = 40.sp, fontWeight = FontWeight.Bold) },
     )
 }
 
 @Composable
 fun BarraInferior(navController: NavController, i: Int) {
-    var n = i
 
     /* BackHandler {
         // Cierra la aplicación
