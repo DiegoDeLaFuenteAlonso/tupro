@@ -4,4 +4,5 @@ sealed class AppScreens(val route: String) {
     object ItemInicio: AppScreens("item_inicio")
     object ItemBuscar: AppScreens("item_buscar")
     object ItemPerfil: AppScreens("item_perfil")
+    object ScreenPartido: AppScreens("screen_partido")
 }

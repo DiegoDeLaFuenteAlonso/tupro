@@ -1,10 +1,8 @@
-package com.diego.tupro
+package com.diego.tupro.screenPrincipal
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,32 +17,26 @@ import androidx.navigation.NavController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ItemPerfil(navController: NavController) {
+fun ItemBuscar(navController: NavController) {
     Scaffold (
-        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+        // containerColor = MaterialTheme.colorScheme.surfaceVariant,
         topBar = {
-            MaterialTheme(
-                colorScheme = MaterialTheme.colorScheme.copy(surface = MaterialTheme.colorScheme.primary, onSurface = MaterialTheme.colorScheme.onPrimary)
-            ) {
-                Column {
-                    TopAppBar(
-                        { BarraSuperior() }
-                    )
-                }
+            Column {
+                BarraSuperior()
             }
         },
-        // bottomBar = { BarraInferior(navController = navController, 2)}
+        // bottomBar = { BarraInferior(navController = navController, 1)}
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding)
+        BodyContentBuscar(innerPadding)
     }
 }
 
 @Composable
-fun BodyContentPerfil(innerPadding: PaddingValues) {
+fun BodyContentBuscar(padding: PaddingValues) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Button(onClick = { /* Haz algo aquí */ }) {
-            Text("Perfil")
+            Text("Buscar")
         }
     }
 }

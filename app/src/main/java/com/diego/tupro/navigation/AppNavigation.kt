@@ -6,14 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.BarraInferior
-import com.diego.tupro.IniciarInterfaz
-import com.diego.tupro.ItemBuscar
-import com.diego.tupro.ItemInicio
-import com.diego.tupro.ItemPerfil
-import com.diego.tupro.BarraInferior
-import com.diego.tupro.ItemInicio
-import com.diego.tupro.ItemPerfil
+import com.diego.tupro.screenPrincipal.BarraInferior
+import com.diego.tupro.screenPrincipal.ItemBuscar
+import com.diego.tupro.screenPrincipal.ItemInicio
+import com.diego.tupro.screenPrincipal.ItemPerfil
+import com.diego.tupro.screenSecundaria.ScreenPartido
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -33,6 +30,9 @@ fun AppNavigation(){
             }
             composable(AppScreens.ItemPerfil.route){
                 ItemPerfil(navController)
+            }
+            composable(AppScreens.ScreenPartido.route){
+                ScreenPartido(navController)
             }
         }
     }
