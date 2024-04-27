@@ -18,31 +18,7 @@ import com.diego.tupro.screenSecundaria.ScreenVerificacion
 @Composable
 fun AppNavigation(){
     val navController = rememberNavController()
-    val userViewModel: UserViewModel = viewModel()
-    /*
-    Scaffold (
-        // bottomBar = { BarraInferior(navController, 0) }
 
-    ){
-        NavHost(navController, AppScreens.ItemInicio.route){
-            composable(AppScreens.ItemInicio.route){
-                ItemInicio(navController)
-            }
-            composable(AppScreens.ItemBuscar.route){
-                ItemBuscar(navController)
-            }
-            composable(AppScreens.ItemPerfil.route){
-                ItemPerfil(navController)
-            }
-            composable(AppScreens.ScreenPartido.route) {
-                ScreenPartido(navController)
-            }
-            composable(AppScreens.ScreenSesion.route) {
-                ScreenSesion(navController)
-            }
-        }
-    }
-    */
     NavHost(navController, AppScreens.ItemInicio.route){
         composable(AppScreens.ItemInicio.route){
             ItemInicio(navController)

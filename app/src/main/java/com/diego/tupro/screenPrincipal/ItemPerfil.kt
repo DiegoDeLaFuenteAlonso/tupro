@@ -176,6 +176,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                                             textAlign = TextAlign.Center
                                         )
                                     }
+                                    /*
                                     ElevatedButton(
                                         onClick = { /*TODO*/ },
                                         Modifier
@@ -188,7 +189,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                                         shape = RoundedCornerShape(Constantes.redondeoBoton)
                                     ) {
                                         Text(text = "Google", textAlign = TextAlign.Center)
-                                    }
+                                    }*/
                                 }
                             }
                         }
@@ -272,7 +273,6 @@ fun EstructuraItemPerfil(navController: NavController) {
                     Spacer(modifier = Modifier.height(48.dp)) // Margen adicional al final
                 }
             }
-
         }
     }
 }
