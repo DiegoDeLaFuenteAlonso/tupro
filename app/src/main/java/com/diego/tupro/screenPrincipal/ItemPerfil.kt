@@ -1,7 +1,12 @@
 package com.diego.tupro.screenPrincipal
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -48,6 +53,13 @@ import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -72,6 +84,25 @@ fun EstructuraItemPerfil(navController: NavController) {
     // Estado para mostrar/ocultar el diálogo de confirmación
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val activity = context as? Activity
+    val signInResultLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult()) { result ->
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+                handleSignInResult(task, navController, activity)
+            }
+            Activity.RESULT_CANCELED -> {
+                // El usuario canceló el intento de inicio de sesión
+                Log.d("TAG", "Sign in cancelled")
+            }
+            else -> {
+                // Ocurrió un error
+                Log.d("TAG", "Sign in failed with result code: ${result.resultCode}")
+            }
+        }
+    }
+
+
 
     Scaffold(
         topBar = {
@@ -177,7 +208,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                                         )
                                     }
                                     ElevatedButton(
-                                        onClick = { /*TODO*/ },
+                                        onClick = { signInWithGoogle(signInResultLauncher, navController, context) },
                                         Modifier
                                             .weight(1f)
                                             .padding(
@@ -276,6 +307,75 @@ fun EstructuraItemPerfil(navController: NavController) {
         }
     }
 }
+
+fun signInWithGoogle(
+    resultLauncher: ActivityResultLauncher<Intent>,
+    navController: NavController,
+    context: Context
+) {
+    // Crear una instancia de GoogleSignInClient
+    val DEFAULT_WEB_CLIENT_ID = "707739853008-2sfljn1vebcrggb96s5fupmonl3d8pil.apps.googleusercontent.com"
+    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        .requestIdToken(DEFAULT_WEB_CLIENT_ID)
+        .requestEmail()
+        .build()
+
+    val mGoogleSignInClient = GoogleSignIn.getClient(context, gso)
+
+    // Iniciar el proceso de autenticación con Google
+    val signInIntent = mGoogleSignInClient.signInIntent
+    resultLauncher.launch(signInIntent)
+}
+
+fun handleSignInResult(
+    task: Task<GoogleSignInAccount>,
+    navController: NavController,
+    activity: Activity?
+) {
+    try {
+        // Google Sign In fue exitoso, autenticar con Firebase
+        val account = task.getResult(ApiException::class.java)!!
+        if (activity != null) {
+            firebaseAuthWithGoogle(account.idToken!!, navController, activity)
+        }
+        else{
+            Log.w("TAG", "activity es null")
+        }
+    } catch (e: ApiException) {
+        // Google Sign In falló, actualizar UI apropiadamente
+        Log.w("TAG", "Google sign in failed", e)
+    }
+}
+
+private fun firebaseAuthWithGoogle(idToken: String, navController: NavController, activity: Activity) {
+    val credential = GoogleAuthProvider.getCredential(idToken, null)
+    val auth = Firebase.auth
+    auth.signInWithCredential(credential)
+        .addOnCompleteListener(activity) { task ->
+            if (task.isSuccessful) {
+                // Inicio de sesión exitoso, actualizar UI con la información del usuario de Firebase
+                val user = auth.currentUser
+                updateUI(user, navController)
+            } else {
+                // Si el inicio de sesión falla, mostrar un mensaje al usuario.
+                Log.w("TAG", "signInWithCredential:failure", task.exception)
+                updateUI(null, navController)
+            }
+        }
+}
+
+fun updateUI(user: FirebaseUser?, navController: NavController) {
+    if (user != null) {
+        // El usuario se autenticó con éxito, puedes navegar a otra pantalla aquí
+        // o actualizar la interfaz de usuario de alguna otra manera
+        Constantes.reiniciarNavegacion(navController)
+        println("Usuario autenticado: ${user.displayName}")
+    } else {
+        // El inicio de sesión falló, muestra un mensaje al usuario
+        println("Error en el inicio de sesión")
+    }
+}
+
 
 fun cerrarSesion(navController: NavController, context: Context) {
     val auth = Firebase.auth

@@ -92,6 +92,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-auth:21.1.0")
     implementation("com.google.firebase:firebase-firestore:24.11.1")
+    implementation("com.google.firebase:firebase-core:21.1.1")
 
     implementation("androidx.compose.runtime:runtime-livedata:1.6.6")
     implementation("androidx.datastore:datastore-preferences:1.1.0")
