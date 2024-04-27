@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
+import com.diego.tupro.Constantes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,10 +23,10 @@ fun ItemBuscar(navController: NavController) {
         // containerColor = MaterialTheme.colorScheme.surfaceVariant,
         topBar = {
             Column {
-                BarraSuperior()
+                BarraSuperior("")
             }
         },
-        // bottomBar = { BarraInferior(navController = navController, 1)}
+        bottomBar = { BarraInferior(navController = navController, 1)}
 
     ) { innerPadding ->
         BodyContentBuscar(innerPadding)
@@ -35,7 +36,7 @@ fun ItemBuscar(navController: NavController) {
 @Composable
 fun BodyContentBuscar(padding: PaddingValues) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Button(onClick = { /* Haz algo aquí */ }) {
+        Button(onClick = { Constantes.sesionIniciada = !Constantes.sesionIniciada }) {
             Text("Buscar")
         }
     }

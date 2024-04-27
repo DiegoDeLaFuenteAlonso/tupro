@@ -64,10 +64,15 @@ dependencies {
     //implementation("androidx.compose.material:material:1.4.2")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.compose.material3:material3-android:1.2.1")
+    // view model
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    // iconos
+    implementation("androidx.compose.material:material-icons-extended-android:1.6.6")
     // rebote, no funciona
     implementation("com.google.accompanist:accompanist-insets:0.23.0")
     // cambiar barra de tareas
     implementation("com.google.accompanist:accompanist-systemuicontroller:0.23.0")
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
     // ocultar top bar
     // implementation("com.google.accompanist:accompanist-coil:0.16.0")
     // animaciones nav host
@@ -81,10 +86,13 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    implementation(platform("com.google.firebase:firebase-bom:32.8.0"))
+    implementation(platform("com.google.firebase:firebase-bom:32.8.1"))
     implementation("com.google.firebase:firebase-analytics")
     // implementation("com.google.firebase:firebase-crashlytics")
     implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.android.gms:play-services-auth:21.0.0")
+    implementation("com.google.android.gms:play-services-auth:21.1.0")
+    implementation("com.google.firebase:firebase-firestore:24.11.1")
 
+    implementation("androidx.compose.runtime:runtime-livedata:1.6.6")
+    implementation("androidx.datastore:datastore-preferences:1.1.0")
 }
