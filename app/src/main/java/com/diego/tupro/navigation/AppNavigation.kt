@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.screenPrincipal.ItemBuscar
 import com.diego.tupro.screenPrincipal.ItemInicio
 import com.diego.tupro.screenPrincipal.ItemPerfil
+import com.diego.tupro.screenSecundaria.ScreenCrearEquipo
 import com.diego.tupro.screenSecundaria.ScreenPartido
 import com.diego.tupro.screenSecundaria.ScreenRegistro
 import com.diego.tupro.screenSecundaria.ScreenSesion
@@ -40,6 +41,9 @@ fun AppNavigation(){
         }
         composable(AppScreens.ScreenVerificacion.route) {
             ScreenVerificacion(navController)
+        }
+        composable(AppScreens.ScreenCrearEquipo.route) {
+            ScreenCrearEquipo(navController)
         }
     }
 }
