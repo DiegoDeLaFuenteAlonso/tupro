@@ -83,7 +83,7 @@ fun ScreenCrearEquipo(navController: NavController){
             TextField(
                 value = textoCodigo,
                 onValueChange = {
-                    if (it.all { char -> char.isLetterOrDigit()} && it.length <= 5) {
+                    if (it.all { char -> char.isLetterOrDigit()} && it.length <= 3) {
                         textoCodigo = it
                     }
                 },
@@ -92,7 +92,7 @@ fun ScreenCrearEquipo(navController: NavController){
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusRequester.requestFocus() }),
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("${textoCodigo.length}/5") }
+                supportingText = { Text("${textoCodigo.length}/3") }
             )
 
             Spacer(modifier = Modifier.height(12.dp))

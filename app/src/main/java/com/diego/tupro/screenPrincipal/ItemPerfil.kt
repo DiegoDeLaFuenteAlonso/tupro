@@ -1,6 +1,5 @@
 package com.diego.tupro.screenPrincipal
 
-import android.app.LauncherActivity
 import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -40,7 +41,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalBottomSheet
@@ -61,10 +61,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +80,7 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -229,37 +232,39 @@ fun EstructuraItemPerfil(navController: NavController) {
             }
         },
         floatingActionButton = {
-            var showMenu by remember { mutableStateOf(false) }
+            if (usuario != "") {
+                var showMenu by remember { mutableStateOf(false) }
 
-            Box {
-                FloatingActionButton(onClick = { showMenu = !showMenu }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Crear equipo / competicion")
-                }
+                Box {
+                    FloatingActionButton(onClick = { showMenu = !showMenu }) {
+                        Icon(Icons.Filled.Add, contentDescription = "Crear equipo / competicion")
+                    }
 
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        onClick = {
-                            showMenu = false
-                            navController.navigate("screen_crear_equipo")
-                        },
-                        text = { Text(text = "Crear equipo") }
-                    )
-                    DropdownMenuItem(
-                        onClick = {
-                            showMenu = false
-                        },
-                        text = { Text(text = "Crear competicion") }
-                    )
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                                navController.navigate("screen_crear_equipo")
+                            },
+                            text = { Text(text = "Crear equipo") }
+                        )
+                        DropdownMenuItem(
+                            onClick = {
+                                showMenu = false
+                            },
+                            text = { Text(text = "Crear competicion") }
+                        )
+                    }
                 }
             }
         },
         bottomBar = { BarraInferior(navController = navController, 2) }
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding)
+        BodyContentPerfil(innerPadding, sessionManager)
 
         val sheetState = rememberModalBottomSheetState()
 
@@ -372,12 +377,13 @@ fun eliminarCuenta(navController: NavController, context: Context) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun BodyContentPerfil(innerPadding: PaddingValues) {
-    //val auth = Firebase.auth
-    //val currentUser = auth.currentUser
+fun BodyContentPerfil(innerPadding: PaddingValues, sessionManager: SessionManager) {
+    val auth = Firebase.auth
+    val currentUser = auth.currentUser
 
-    if ("currentUser" == null) {
+    if (currentUser == null) {
         // El usuario no está registrado
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -394,127 +400,168 @@ fun BodyContentPerfil(innerPadding: PaddingValues) {
         }
     } else {
         // El usuario está registrado
-        if (1 == 2) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+        var selectedTabIndex by remember { mutableStateOf(0) }
+        val tabItems = listOf(
+            TabItem("Equipos", Icons.Filled.Shield, Icons.Outlined.Shield),
+            TabItem("Competiciones", Icons.Filled.Groups, Icons.Outlined.Groups)
+        )
+        val pagerState = rememberPagerState {
+            tabItems.size
+        }
+        LaunchedEffect(selectedTabIndex) {
+            pagerState.animateScrollToPage(selectedTabIndex)
+        }
+        LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+            if (!pagerState.isScrollInProgress) {
+                selectedTabIndex = pagerState.currentPage
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            PrimaryTabRow(
+                selectedTabIndex = selectedTabIndex
             ) {
-                Text(
-                    text = "Aun no has creado\nningún equipo",
-                    fontSize = 22.sp,
-                    color = colorScheme.secondary,
-                    textAlign = TextAlign.Center
-                )
-            }
-        } else {
-            var selectedTabIndex by remember { mutableStateOf(0) }
-            val tabItems = listOf(
-                TabItem("Equipos", Icons.Filled.Shield, Icons.Outlined.Shield),
-                TabItem("Competiciones", Icons.Filled.Groups, Icons.Outlined.Groups)
-            )
-            val pagerState = rememberPagerState {
-                tabItems.size
-            }
-            LaunchedEffect(selectedTabIndex) {
-                pagerState.animateScrollToPage(selectedTabIndex)
-            }
-            LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
-                if (!pagerState.isScrollInProgress) {
-                    selectedTabIndex = pagerState.currentPage
-                }
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            ) {
-                PrimaryTabRow(
-                    selectedTabIndex = selectedTabIndex
-                ) {
-                    tabItems.forEachIndexed { index, item ->
-                        Tab(
-                            selected = (selectedTabIndex == index),
-                            onClick = {
-                                selectedTabIndex = index
-                            },
-                            modifier = Modifier
-                                .padding(
-                                    top = 6.dp,
-                                    bottom = 6.dp
-                                )
-                        ) {
-                            Icon(
-                                imageVector = if (index == selectedTabIndex) item.selecIcon else item.unselecIcon,
-                                contentDescription = item.titulo
+                tabItems.forEachIndexed { index, item ->
+                    Tab(
+                        selected = (selectedTabIndex == index),
+                        onClick = {
+                            selectedTabIndex = index
+                        },
+                        modifier = Modifier
+                            .padding(
+                                top = 6.dp,
+                                bottom = 6.dp
                             )
-                            Text(text = item.titulo)
-                        }
+                    ) {
+                        Icon(
+                            imageVector = if (index == selectedTabIndex) item.selecIcon else item.unselecIcon,
+                            contentDescription = item.titulo
+                        )
+                        Text(text = item.titulo)
                     }
                 }
+            }
 
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                ) { index ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val auth = FirebaseAuth.getInstance()
-                        val db = FirebaseFirestore.getInstance()
-                        val user = auth.currentUser
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    //.weight(1f)
+                    //.padding(innerPadding)
+            ) { index ->
+                val auth = FirebaseAuth.getInstance()
+                val db = FirebaseFirestore.getInstance()
+                val user = auth.currentUser
 
-                        if (index == 0) {
+                if (index == 0) {
+                    if (user != null) {
+                        // Crear un estado mutable para la lista de equipos
+                        val listaEquipos = remember { mutableStateListOf<Equipo>() }
+
+                        // Crear un estado mutable para el estado de carga
+                        val isLoading = remember { mutableStateOf(true) }
+
+                        LaunchedEffect(key1 = user) {
                             if (user != null) {
-                                val auth = FirebaseAuth.getInstance()
-                                val db = FirebaseFirestore.getInstance()
-                                val user = auth.currentUser
+                                db.collection("equipos")
+                                    .whereEqualTo("creador", user.uid)
+                                    .get()
+                                    .addOnSuccessListener { result ->
+                                        for (document in result) {
+                                            val codigo = document.getString("codigo") ?: ""
+                                            val equipo = document.getString("equipo") ?: ""
+                                            val idDocumento = document.id
+                                            val creadorId = document.getString("creador") ?: ""
 
-                                // Crear un estado mutable para la lista de equipos
-                                val listaEquipos = remember { mutableStateListOf<Equipo>() }
-
-                                // Crear un estado mutable para el estado de carga
-                                val isLoading = remember { mutableStateOf(true) }
-
-                                LaunchedEffect(key1 = user) {
-                                    if (user != null) {
-                                        db.collection("equipos")
-                                            .whereEqualTo("creador", user.uid)
-                                            .get()
-                                            .addOnSuccessListener { result ->
-                                                for (document in result) {
-                                                    val codigo = document.getString("codigo") ?: ""
-                                                    val equipo = document.getString("equipo") ?: ""
-                                                    val idDocumento = document.id
-                                                    listaEquipos.add(Equipo(codigo, equipo, idDocumento))
+                                            db.collection("users").document(creadorId)
+                                                .get()
+                                                .addOnSuccessListener { userDocument ->
+                                                    val username = userDocument.getString("username") ?: ""
+                                                    listaEquipos.add(
+                                                        Equipo(
+                                                            codigo,
+                                                            equipo,
+                                                            idDocumento,
+                                                            username
+                                                        )
+                                                    )
                                                 }
-                                                // Actualizar el estado de carga cuando la consulta haya terminado
-                                                isLoading.value = false
-                                            }
-                                            .addOnFailureListener { exception ->
-                                                Log.w("TAG", "Error getting documents: ", exception)
-                                            }
-                                    }
-                                }
-
-                                // Mostrar la lista de equipos o un mensaje, dependiendo del estado de carga
-                                if (isLoading.value) {
-                                    // Mostrar un indicador de carga mientras la consulta está en progreso
-                                    LinearProgressIndicator()
-                                } else if (listaEquipos.isEmpty()) {
-                                    Text("Aun no has creado ningún equipo")
-                                } else {
-                                    LazyColumn {
-                                        items(listaEquipos) { equipo ->
-                                            Text(text = "${equipo.equipo}, ${equipo.codigo}, ${equipo.idDocumento}")
+                                                .addOnFailureListener { exception ->
+                                                    Log.w("TAG", "Error getting user document: ", exception)
+                                                }
                                         }
+                                        // Actualizar el estado de carga cuando la consulta haya terminado
+                                        isLoading.value = false
                                     }
+                                    .addOnFailureListener { exception ->
+                                        Log.w("TAG", "Error getting documents: ", exception)
+                                    }
+                            }
+                        }
+
+                        // Mostrar la lista de equipos o un mensaje, dependiendo del estado de carga
+                        if (isLoading.value) {
+                            // Mostrar un indicador de carga mientras la consulta está en progreso
+                            Box (
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ){
+                                CircularProgressIndicator()
+                            }
+                        } else if (listaEquipos.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                    //.padding(innerPadding),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Aun no has creado\nningún equipo",
+                                    fontSize = 22.sp,
+                                    color = colorScheme.secondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    //.padding(innerPadding)
+                            ) {
+                                items(listaEquipos) { equipo ->
+                                    ListItem(
+                                        leadingContent = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(0.2f)
+                                                    .aspectRatio(1f)
+                                                    .background(colorScheme.secondaryContainer)
+                                                    .clip(CircleShape),
+                                                contentAlignment = Alignment.Center
+
+                                            ) {
+                                                Text(
+                                                    equipo.codigo.toUpperCase(Locale.ROOT),
+                                                    color = colorScheme.onSecondaryContainer,
+                                                    fontSize = 20.sp,
+                                                    //fontWeight = FontWeight.Bold,
+                                                )
+                                            }
+                                        },
+                                        headlineContent = { Text(equipo.equipo) },
+                                        supportingContent = { Text("#" + equipo.idDocumento) },
+                                        trailingContent = { Text(equipo.creador) },
+                                        modifier = Modifier.clickable{/*TODO*/}
+                                    )
+                                    HorizontalDivider(
+                                        thickness = 1.dp,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                    )
                                 }
                             }
                         }
@@ -528,7 +575,8 @@ fun BodyContentPerfil(innerPadding: PaddingValues) {
 data class Equipo(
     val codigo: String,
     val equipo: String,
-    val idDocumento: String
+    val idDocumento: String,
+    val creador: String
 )
 
 data class TabItem(
