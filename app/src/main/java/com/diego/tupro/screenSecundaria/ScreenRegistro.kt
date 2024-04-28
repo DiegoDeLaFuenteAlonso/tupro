@@ -76,7 +76,9 @@ fun ScreenRegistro(navController: NavController) {
 
     var textoSnackbar by remember { mutableStateOf("") }
 
-    val focusRequester = remember { FocusRequester() }
+    val focusRequester1 = remember { FocusRequester() }
+    val focusRequester2 = remember { FocusRequester() }
+    val focusRequester3 = remember { FocusRequester() }
     val context = LocalContext.current
 
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
@@ -103,11 +105,11 @@ fun ScreenRegistro(navController: NavController) {
 
             OutlinedTextField(
                 value = textoUsuario,
-                onValueChange = { textoUsuario = it },
+                onValueChange = { if (it.length <= 20) textoUsuario = it},
                 label = { Text("Nombre de usuario") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusRequester.requestFocus() }),
+                keyboardActions = KeyboardActions(onNext = { focusRequester1.requestFocus() }),
                 modifier = Modifier.fillMaxWidth(),
                 isError = textoErrorUsuario.isNotEmpty(),
                 supportingText = { Text(textoErrorUsuario) },
@@ -129,8 +131,8 @@ fun ScreenRegistro(navController: NavController) {
                 label = { Text("Correo electrónico") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusRequester.requestFocus() }),
-                modifier = Modifier.fillMaxWidth(),
+                keyboardActions = KeyboardActions(onNext = { focusRequester2.requestFocus() }),
+                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester1),
                 isError = textoErrorCorreo.isNotEmpty(),
                 supportingText = { Text(textoErrorCorreo) },
                 trailingIcon = {
@@ -151,7 +153,8 @@ fun ScreenRegistro(navController: NavController) {
                 label = { Text("Contraseña") },
                 singleLine = true,
                 visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusRequester3.requestFocus() }),
                 isError = textoErrorPass.isNotEmpty(),
                 supportingText = { Text(textoErrorPass) },
                 trailingIcon = {
@@ -164,7 +167,7 @@ fun ScreenRegistro(navController: NavController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester)
+                    .focusRequester(focusRequester2)
             )
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -188,7 +191,7 @@ fun ScreenRegistro(navController: NavController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester)
+                    .focusRequester(focusRequester3)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
