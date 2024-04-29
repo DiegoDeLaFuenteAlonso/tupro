@@ -55,7 +55,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 
 @Composable
-fun ScreenCrearEquipo(navController: NavController){
+fun ScreenCrearEquipo(navController: NavController) {
     var textoSnackbar by remember { mutableStateOf("") }
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val paddingBotones = 5.dp
@@ -64,6 +64,7 @@ fun ScreenCrearEquipo(navController: NavController){
     var textoEquipo by remember { mutableStateOf("") }
     var errorCodigo by remember { mutableStateOf(false) }
     var errorEquipo by remember { mutableStateOf(false) }
+    var botonesActivos by remember { mutableStateOf(true) }
     val context = LocalContext.current
 
     Surface {
@@ -88,7 +89,7 @@ fun ScreenCrearEquipo(navController: NavController){
             TextField(
                 value = textoCodigo,
                 onValueChange = {
-                    if (it.all { char -> char.isLetterOrDigit()} && it.length <= 3) {
+                    if (it.all { char -> char.isLetterOrDigit() } && it.length <= 3) {
                         textoCodigo = it
                     }
                 },
@@ -123,7 +124,7 @@ fun ScreenCrearEquipo(navController: NavController){
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 isError = errorEquipo,
-                supportingText = { Text("${textoEquipo.length}/20")},
+                supportingText = { Text("${textoEquipo.length}/20") },
                 trailingIcon = {
                     (if (errorEquipo) Icons.Default.ErrorOutline else null)?.let {
                         Icon(
@@ -144,7 +145,11 @@ fun ScreenCrearEquipo(navController: NavController){
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = {
+                        botonesActivos = false
+                        navController.popBackStack()
+                    },
+                    enabled = botonesActivos,
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
                     modifier = Modifier
                         .weight(1f)
@@ -158,10 +163,11 @@ fun ScreenCrearEquipo(navController: NavController){
 
                 Button(
                     onClick = {
+                        botonesActivos = false
                         crearEquipo(
                             textoCodigo.trim(),
                             textoEquipo.trim(),
-                            { nuevoMensaje -> textoSnackbar = nuevoMensaje},
+                            { nuevoMensaje -> textoSnackbar = nuevoMensaje },
                             { nuevoMensaje -> errorCodigo = nuevoMensaje },
                             { nuevoMensaje -> errorEquipo = nuevoMensaje },
                             context,
@@ -169,6 +175,7 @@ fun ScreenCrearEquipo(navController: NavController){
                             softwareKeyboardController
                         )
                     },
+                    enabled = botonesActivos,
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
                     modifier = Modifier
                         .weight(1f)
@@ -184,7 +191,7 @@ fun ScreenCrearEquipo(navController: NavController){
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
-        ){
+        ) {
             if (textoSnackbar.isNotEmpty()) {
                 softwareKeyboardController?.hide()
                 Snackbar(
@@ -222,11 +229,11 @@ fun crearEquipo(
     actualizarErrorCodigo(false)
     actualizarErrorEquipo(false)
 
-    if(textoCodigo.isEmpty() || textoEquipo.isEmpty()) {
+    if (textoCodigo.isEmpty() || textoEquipo.isEmpty()) {
         actualizarTextoSnackbar("Ambos campos son necesarios")
-        if( textoCodigo.isEmpty()) actualizarErrorCodigo(true)
-        if( textoEquipo.isEmpty()) actualizarErrorEquipo(true)
-    } else{
+        if (textoCodigo.isEmpty()) actualizarErrorCodigo(true)
+        if (textoEquipo.isEmpty()) actualizarErrorEquipo(true)
+    } else {
         // Comprueba si el usuario está autenticado
         if (currentUser != null) {
             // Obtén el contador actual

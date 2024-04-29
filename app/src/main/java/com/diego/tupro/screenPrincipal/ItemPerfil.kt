@@ -47,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -138,31 +139,41 @@ fun EstructuraItemPerfil(navController: NavController) {
                             title = { Text("Confirmación") },
                             text = { Text("Se van a eliminar ${selecEquipos.size} elemento(s), ¿deseas continuar?") },
                             confirmButton = {
-                                Button(onClick = {
-                                    if (selecEquipos.isNotEmpty()) {
-                                        val db = FirebaseFirestore.getInstance()
-                                        for (equipo in selecEquipos) {
-                                            val docRef = db.collection("equipos").document(equipo.idDocumento)
-                                            docRef.delete()
-                                                .addOnSuccessListener {
-                                                    Log.d("eliminar_elementos", "Documento eliminado con éxito")
-                                                }
-                                                .addOnFailureListener { e ->
-                                                    Log.w("eliminar_elementos", "Error al eliminar el documento", e)
-                                                }
+                                FilledTonalButton(
+                                    onClick = {
+                                        if (selecEquipos.isNotEmpty()) {
+                                            val db = FirebaseFirestore.getInstance()
+                                            for (equipo in selecEquipos) {
+                                                val docRef = db.collection("equipos").document(equipo.idDocumento)
+                                                docRef.delete()
+                                                    .addOnSuccessListener {
+                                                        Log.d("eliminar_elementos", "Documento eliminado con éxito")
+                                                    }
+                                                    .addOnFailureListener { e ->
+                                                        Log.w("eliminar_elementos", "Error al eliminar el documento", e)
+                                                    }
+                                            }
+                                            cargarColumna = false
+                                            cargarColumna = true
+                                            selecEquipos.clear()
                                         }
-                                        cargarColumna = false
-                                        cargarColumna = true
-                                        selecEquipos.clear()
-                                    }
-                                    showDialogEliminar = false
-                                }) {
-                                    Text("Continuar")
+                                        showDialogEliminar = false
+                                    },
+                                    colors = ButtonDefaults.filledTonalButtonColors(colorScheme.errorContainer)
+                                ) {
+                                    Text(
+                                        "Continuar",
+                                        textAlign = TextAlign.Center,
+                                        color = colorScheme.onErrorContainer
+                                    )
                                 }
                             },
                             dismissButton = {
                                 Button(onClick = { showDialogEliminar = false }) {
-                                    Text("Cancelar")
+                                    Text(
+                                        "Cancelar",
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
                             }
                         )
@@ -218,21 +229,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                                         color = colorScheme.onSecondaryContainer,
                                         fontSize = 18.sp
                                     )
-                                }/*
-                                Box(
-                                    modifier = Modifier
-                                        .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                                        .background(
-                                            color = colorScheme.secondaryContainer,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                ) {
-                                    Text(
-                                        text = "Usuario: " /*${userSession!!.displayName}*/,
-                                        color = colorScheme.onSecondaryContainer,
-                                        fontSize = 18.sp
-                                    )
-                                }*/
+                                }
                             }
                         }
                     }
@@ -536,36 +533,43 @@ fun BodyContentPerfil(
                         LaunchedEffect(key1 = user) {
                             db.collection("equipos")
                                 .whereEqualTo("creador", user.uid)
-                                .get()
-                                .addOnSuccessListener { result ->
-                                    for (document in result) {
-                                        val codigo = document.getString("codigo") ?: ""
-                                        val equipo = document.getString("equipo") ?: ""
-                                        val idDocumento = document.id
-                                        val creadorId = document.getString("creador") ?: ""
+                                .addSnapshotListener { snapshot, e ->
+                                    isLoading.value = true
+                                    if (e != null) {
+                                        Log.w("disparadon_consulta_equipos", "El disparador ha fallado, ", e)
+                                        return@addSnapshotListener
+                                    }
 
-                                        db.collection("users").document(creadorId)
-                                            .get()
-                                            .addOnSuccessListener { userDocument ->
-                                                val username = userDocument.getString("username") ?: ""
-                                                listaEquipos.add(
-                                                    Equipo(
-                                                        codigo,
-                                                        equipo,
-                                                        idDocumento,
-                                                        username
+                                    if (snapshot != null && !snapshot.isEmpty) {
+                                        listaEquipos.clear()
+                                        for (document in snapshot.documents) {
+                                            val codigo = document.getString("codigo") ?: ""
+                                            val equipo = document.getString("equipo") ?: ""
+                                            val idDocumento = document.id
+                                            val creadorId = document.getString("creador") ?: ""
+
+                                            db.collection("users").document(creadorId)
+                                                .get()
+                                                .addOnSuccessListener { userDocument ->
+                                                    val username = userDocument.getString("username") ?: ""
+                                                    listaEquipos.add(
+                                                        Equipo(
+                                                            codigo,
+                                                            equipo,
+                                                            idDocumento,
+                                                            username
+                                                        )
                                                     )
-                                                )
-                                            }
-                                            .addOnFailureListener { exception ->
-                                                Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
-                                            }
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
+                                                }
+                                        }
+                                    } else {
+                                        Log.d("disparadon_consulta_equipos", "Current data: null")
                                     }
                                     // Actualizar el estado de carga cuando la consulta haya terminado
                                     isLoading.value = false
-                                }
-                                .addOnFailureListener { exception ->
-                                    Log.w("consulta_equipos", "Error en la consulta de documentos: ", exception)
                                 }
                         }
                         if(cargarColumna){
@@ -627,6 +631,9 @@ fun BodyContentPerfil(
                                                     if (modoEdicion.value) {
                                                         if (seleccionado) {
                                                             selecEquipos.remove(equipo)
+                                                            if(selecEquipos.isEmpty()){
+                                                                modoEdicion.value = false
+                                                            }
                                                         } else {
                                                             selecEquipos.add(equipo)
                                                         }
