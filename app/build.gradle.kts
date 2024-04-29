@@ -95,4 +95,6 @@ dependencies {
 
     implementation("androidx.compose.runtime:runtime-livedata:1.6.6")
     implementation("androidx.datastore:datastore-preferences:1.1.0")
+
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.6.6")
 }

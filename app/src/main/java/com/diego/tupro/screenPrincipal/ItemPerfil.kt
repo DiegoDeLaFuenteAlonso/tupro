@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,10 +21,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.Groups
@@ -41,6 +43,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalBottomSheet
@@ -53,20 +56,20 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -102,11 +105,71 @@ fun EstructuraItemPerfil(navController: NavController) {
     // Estado para mostrar/ocultar el diálogo de confirmación
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val modoEdicion = remember { mutableStateOf(false) }
+    val selecEquipos = remember { mutableStateListOf<Equipo>() }
+    var showDialogEliminar by remember { mutableStateOf(false) }
+    var cargarColumna by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
             Column {
-                if (usuario != "") {
+                if(modoEdicion.value){
+                    TopAppBar(
+                        title = { Text(text = "Seleccionados: ${selecEquipos.size}") },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                modoEdicion.value = false
+                                selecEquipos.clear()
+                            }) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "cancelar")
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = {
+                                showDialogEliminar = true
+                            }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "eliminar elementos")
+                            }
+                        }
+                    )
+                    if (showDialogEliminar) {
+                        AlertDialog(
+                            onDismissRequest = { showDialogEliminar = false },
+                            title = { Text("Confirmación") },
+                            text = { Text("Se van a eliminar ${selecEquipos.size} elemento(s), ¿deseas continuar?") },
+                            confirmButton = {
+                                Button(onClick = {
+                                    if (selecEquipos.isNotEmpty()) {
+                                        val db = FirebaseFirestore.getInstance()
+                                        for (equipo in selecEquipos) {
+                                            val docRef = db.collection("equipos").document(equipo.idDocumento)
+                                            docRef.delete()
+                                                .addOnSuccessListener {
+                                                    Log.d("eliminar_elementos", "Documento eliminado con éxito")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Log.w("eliminar_elementos", "Error al eliminar el documento", e)
+                                                }
+                                        }
+                                        cargarColumna = false
+                                        cargarColumna = true
+                                        selecEquipos.clear()
+                                    }
+                                    showDialogEliminar = false
+                                }) {
+                                    Text("Continuar")
+                                }
+                            },
+                            dismissButton = {
+                                Button(onClick = { showDialogEliminar = false }) {
+                                    Text("Cancelar")
+                                }
+                            }
+                        )
+                    }
+
+                }
+                else if (usuario != "") {
                     TopAppBar(
                         title = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -264,7 +327,7 @@ fun EstructuraItemPerfil(navController: NavController) {
         bottomBar = { BarraInferior(navController = navController, 2) }
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding, sessionManager)
+        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, cargarColumna)
 
         val sheetState = rememberModalBottomSheetState()
 
@@ -377,7 +440,13 @@ fun eliminarCuenta(navController: NavController, context: Context) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun BodyContentPerfil(innerPadding: PaddingValues, sessionManager: SessionManager) {
+fun BodyContentPerfil(
+    innerPadding: PaddingValues,
+    sessionManager: SessionManager,
+    selecEquipos: SnapshotStateList<Equipo>,
+    modoEdicion: MutableState<Boolean>,
+    cargarColumna: Boolean
+) {
     val auth = Firebase.auth
     val currentUser = auth.currentUser
 
@@ -465,103 +534,115 @@ fun BodyContentPerfil(innerPadding: PaddingValues, sessionManager: SessionManage
                         val isLoading = remember { mutableStateOf(true) }
 
                         LaunchedEffect(key1 = user) {
-                            if (user != null) {
-                                db.collection("equipos")
-                                    .whereEqualTo("creador", user.uid)
-                                    .get()
-                                    .addOnSuccessListener { result ->
-                                        for (document in result) {
-                                            val codigo = document.getString("codigo") ?: ""
-                                            val equipo = document.getString("equipo") ?: ""
-                                            val idDocumento = document.id
-                                            val creadorId = document.getString("creador") ?: ""
+                            db.collection("equipos")
+                                .whereEqualTo("creador", user.uid)
+                                .get()
+                                .addOnSuccessListener { result ->
+                                    for (document in result) {
+                                        val codigo = document.getString("codigo") ?: ""
+                                        val equipo = document.getString("equipo") ?: ""
+                                        val idDocumento = document.id
+                                        val creadorId = document.getString("creador") ?: ""
 
-                                            db.collection("users").document(creadorId)
-                                                .get()
-                                                .addOnSuccessListener { userDocument ->
-                                                    val username = userDocument.getString("username") ?: ""
-                                                    listaEquipos.add(
-                                                        Equipo(
-                                                            codigo,
-                                                            equipo,
-                                                            idDocumento,
-                                                            username
-                                                        )
+                                        db.collection("users").document(creadorId)
+                                            .get()
+                                            .addOnSuccessListener { userDocument ->
+                                                val username = userDocument.getString("username") ?: ""
+                                                listaEquipos.add(
+                                                    Equipo(
+                                                        codigo,
+                                                        equipo,
+                                                        idDocumento,
+                                                        username
                                                     )
-                                                }
-                                                .addOnFailureListener { exception ->
-                                                    Log.w("TAG", "Error getting user document: ", exception)
-                                                }
-                                        }
-                                        // Actualizar el estado de carga cuando la consulta haya terminado
-                                        isLoading.value = false
-                                    }
-                                    .addOnFailureListener { exception ->
-                                        Log.w("TAG", "Error getting documents: ", exception)
-                                    }
-                            }
-                        }
-
-                        // Mostrar la lista de equipos o un mensaje, dependiendo del estado de carga
-                        if (isLoading.value) {
-                            // Mostrar un indicador de carga mientras la consulta está en progreso
-                            Box (
-                                modifier = Modifier
-                                    .fillMaxSize(),
-                                contentAlignment = Alignment.Center,
-                            ){
-                                CircularProgressIndicator()
-                            }
-                        } else if (listaEquipos.isEmpty()) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize(),
-                                    //.padding(innerPadding),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = "Aun no has creado\nningún equipo",
-                                    fontSize = 22.sp,
-                                    color = colorScheme.secondary,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    //.padding(innerPadding)
-                            ) {
-                                items(listaEquipos) { equipo ->
-                                    ListItem(
-                                        leadingContent = {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(0.2f)
-                                                    .aspectRatio(1f)
-                                                    .background(colorScheme.secondaryContainer)
-                                                    .clip(CircleShape),
-                                                contentAlignment = Alignment.Center
-
-                                            ) {
-                                                Text(
-                                                    equipo.codigo.toUpperCase(Locale.ROOT),
-                                                    color = colorScheme.onSecondaryContainer,
-                                                    fontSize = 20.sp,
-                                                    //fontWeight = FontWeight.Bold,
                                                 )
                                             }
-                                        },
-                                        headlineContent = { Text(equipo.equipo) },
-                                        supportingContent = { Text("#" + equipo.idDocumento) },
-                                        trailingContent = { Text(equipo.creador) },
-                                        modifier = Modifier.clickable{/*TODO*/}
+                                            .addOnFailureListener { exception ->
+                                                Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
+                                            }
+                                    }
+                                    // Actualizar el estado de carga cuando la consulta haya terminado
+                                    isLoading.value = false
+                                }
+                                .addOnFailureListener { exception ->
+                                    Log.w("consulta_equipos", "Error en la consulta de documentos: ", exception)
+                                }
+                        }
+                        if(cargarColumna){
+                            // Mostrar la lista de equipos o un mensaje, dependiendo del estado de carga
+                            if (isLoading.value) {
+                                // Mostrar un indicador de carga mientras la consulta está en progreso
+                                Box (
+                                    modifier = Modifier
+                                        .fillMaxSize(),
+                                    contentAlignment = Alignment.Center,
+                                ){
+                                    CircularProgressIndicator()
+                                }
+                            } else if (listaEquipos.isEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = "Aun no has creado\nningún equipo",
+                                        fontSize = 22.sp,
+                                        color = colorScheme.secondary,
+                                        textAlign = TextAlign.Center
                                     )
-                                    HorizontalDivider(
-                                        thickness = 1.dp,
-                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-                                    )
+                                }
+                            } else {
+                                LazyColumn(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                ) {
+                                    items(listaEquipos) { equipo ->
+                                        val seleccionado = selecEquipos.contains(equipo)
+                                        ListItem(
+                                            leadingContent = {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth(0.2f)
+                                                        .aspectRatio(1f)
+                                                        .background(if (seleccionado) colorScheme.tertiaryContainer else colorScheme.secondaryContainer),
+                                                    //.clip(CircleShape),
+                                                    contentAlignment = Alignment.Center
+
+                                                ) {
+                                                    Text(
+                                                        equipo.codigo.toUpperCase(Locale.ROOT),
+                                                        color = if (seleccionado) colorScheme.onTertiaryContainer else colorScheme.onSecondaryContainer,
+                                                        fontSize = 20.sp,
+                                                        //fontWeight = FontWeight.Bold,
+                                                    )
+                                                }
+                                            },
+                                            headlineContent = { Text(equipo.equipo) },
+                                            supportingContent = { Text("#" + equipo.idDocumento) },
+                                            trailingContent = { Text(equipo.creador) },
+                                            modifier = Modifier.combinedClickable(
+                                                onClick = {
+                                                    if (modoEdicion.value) {
+                                                        if (seleccionado) {
+                                                            selecEquipos.remove(equipo)
+                                                        } else {
+                                                            selecEquipos.add(equipo)
+                                                        }
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    modoEdicion.value = true
+                                                    selecEquipos.add(equipo)
+                                                }
+                                            )
+                                        )
+                                        HorizontalDivider(
+                                            thickness = 1.dp,
+                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

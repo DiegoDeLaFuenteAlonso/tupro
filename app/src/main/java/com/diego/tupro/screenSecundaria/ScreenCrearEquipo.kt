@@ -1,6 +1,8 @@
 package com.diego.tupro.screenSecundaria
 
+import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,7 +36,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -58,8 +62,9 @@ fun ScreenCrearEquipo(navController: NavController){
     val focusRequester = remember { FocusRequester() }
     var textoCodigo by remember { mutableStateOf("") }
     var textoEquipo by remember { mutableStateOf("") }
-    var textoInfoCodigo by remember { mutableStateOf("") }
-    var textoErrorEquipo by remember { mutableStateOf("") }
+    var errorCodigo by remember { mutableStateOf(false) }
+    var errorEquipo by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Surface {
         Column(
@@ -92,7 +97,17 @@ fun ScreenCrearEquipo(navController: NavController){
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusRequester.requestFocus() }),
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("${textoCodigo.length}/3") }
+                supportingText = { Text("${textoCodigo.length}/3") },
+                isError = errorCodigo,
+                trailingIcon = {
+                    (if (errorCodigo) Icons.Default.ErrorOutline else null)?.let {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = "Mensaje de error"
+                        )
+                    }
+                }
+
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -107,10 +122,10 @@ fun ScreenCrearEquipo(navController: NavController){
                 label = { Text("Nombre") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                isError = textoErrorEquipo.isNotEmpty(),
+                isError = errorEquipo,
                 supportingText = { Text("${textoEquipo.length}/20")},
                 trailingIcon = {
-                    (if (textoErrorEquipo.isNotEmpty()) Icons.Default.ErrorOutline else null)?.let {
+                    (if (errorEquipo) Icons.Default.ErrorOutline else null)?.let {
                         Icon(
                             imageVector = it,
                             contentDescription = "Mensaje de error"
@@ -146,7 +161,12 @@ fun ScreenCrearEquipo(navController: NavController){
                         crearEquipo(
                             textoCodigo.trim(),
                             textoEquipo.trim(),
-                            { nuevoMensaje -> textoSnackbar = nuevoMensaje}
+                            { nuevoMensaje -> textoSnackbar = nuevoMensaje},
+                            { nuevoMensaje -> errorCodigo = nuevoMensaje },
+                            { nuevoMensaje -> errorEquipo = nuevoMensaje },
+                            context,
+                            navController,
+                            softwareKeyboardController
                         )
                     },
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
@@ -186,37 +206,56 @@ fun ScreenCrearEquipo(navController: NavController){
     }
 }
 
-fun crearEquipo(textoCodigo: String, textoEquipo: String, actualizarTextoSnackbar: (String) -> Unit) {
+fun crearEquipo(
+    textoCodigo: String,
+    textoEquipo: String,
+    actualizarTextoSnackbar: (String) -> Unit,
+    actualizarErrorCodigo: (Boolean) -> Unit,
+    actualizarErrorEquipo: (Boolean) -> Unit,
+    context: Context,
+    navController: NavController,
+    softwareKeyboardController: SoftwareKeyboardController?
+) {
     val db = Firebase.firestore
     val auth = Firebase.auth
     val currentUser = auth.currentUser
+    actualizarErrorCodigo(false)
+    actualizarErrorEquipo(false)
 
-    // Comprueba si el usuario está autenticado
-    if (currentUser != null) {
-        // Obtén el contador actual
-        val counterRef = db.collection("counters").document("equiposCounter")
-        db.runTransaction { transaction ->
-            val snapshot = transaction.get(counterRef)
-            val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
-            transaction.update(counterRef, "counter", newCounter)
+    if(textoCodigo.isEmpty() || textoEquipo.isEmpty()) {
+        actualizarTextoSnackbar("Ambos campos son necesarios")
+        if( textoCodigo.isEmpty()) actualizarErrorCodigo(true)
+        if( textoEquipo.isEmpty()) actualizarErrorEquipo(true)
+    } else{
+        // Comprueba si el usuario está autenticado
+        if (currentUser != null) {
+            // Obtén el contador actual
+            softwareKeyboardController?.hide()
+            val counterRef = db.collection("counters").document("equiposCounter")
+            db.runTransaction { transaction ->
+                val snapshot = transaction.get(counterRef)
+                val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
+                transaction.update(counterRef, "counter", newCounter)
 
-            // Usa el contador como el ID del nuevo documento
-            val equipo = hashMapOf(
-                "codigo" to textoCodigo,
-                "equipo" to textoEquipo,
-                "creador" to currentUser.uid
-            )
-            db.collection("equipos").document(newCounter.toString()).set(equipo)
-        }.addOnSuccessListener {
-            Log.d("crear_equipo", "Equipo creado con éxito")
-            actualizarTextoSnackbar("Equipo creado con éxito")
-        }.addOnFailureListener { e ->
-            Log.w("crear_equipo", "Error al crear el equipo", e)
-            actualizarTextoSnackbar("Error al crear el equipo")
+                // Usa el contador como el ID del nuevo documento
+                val equipo = hashMapOf(
+                    "codigo" to textoCodigo,
+                    "equipo" to textoEquipo,
+                    "creador" to currentUser.uid
+                )
+                db.collection("equipos").document(newCounter.toString()).set(equipo)
+            }.addOnSuccessListener {
+                Log.d("crear_equipo", "Equipo creado con éxito")
+                Toast.makeText(context, "Equipo creado con éxito", Toast.LENGTH_SHORT).show()
+                navController.popBackStack()
+            }.addOnFailureListener { e ->
+                Log.w("crear_equipo", "Error al crear el equipo", e)
+                actualizarTextoSnackbar("Error al crear el equipo")
+            }
+        } else {
+            Log.w("crear_equipo", "Usuario no autenticado")
+            actualizarTextoSnackbar("Usuario no autenticado")
         }
-    } else {
-        Log.w("crear_equipo", "Usuario no autenticado")
-        actualizarTextoSnackbar("Usuario no autenticado")
     }
 }
 
