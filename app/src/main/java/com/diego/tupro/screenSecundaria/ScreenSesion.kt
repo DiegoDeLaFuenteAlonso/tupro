@@ -369,42 +369,6 @@ fun singIn(
     }
 }
 
-/*
-@Composable
-fun GuardarSesion() {
-    val db = FirebaseFirestore.getInstance()
-    val context = LocalContext.current
-    val sharedPref = context.getSharedPreferences("sesion_usuario", Context.MODE_PRIVATE)
-    val user = com.google.firebase.ktx.Firebase.auth.currentUser
-
-    user?.let {
-        // Obtener los datos del usuario de Firestore
-        db.collection("usernames").document(user.uid)
-            .get()
-            .addOnSuccessListener { document ->
-                if (document != null) {
-                    Log.d("Inicio_Sesion", "Documento encontrado: ${document.data}")
-                    val username = document.getString("username")
-                    val email = document.getString("email")
-
-                    // Guardar los datos del usuario en las preferencias compartidas
-                    with(sharedPref.edit()) {
-                        putString("username", username)
-                        putString("email", email)
-                        putBoolean("sesionIniciada", true)
-                        commit()
-                    }
-
-                } else {
-                    Log.d("Inicio_Sesion", "No existe codumento con nombre: ${user.uid}")
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.w("Inicio_Sesion", "Error guardar datos inicio de sesion: ", exception)
-            }
-    }
-}
-*/
 @Preview(showSystemUi = true)
 @Composable
 fun GreetingPreviewSesion() {

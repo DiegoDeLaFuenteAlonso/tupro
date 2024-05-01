@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -45,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.toUpperCase
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,15 +54,14 @@ import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.Equipo
+import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
+import com.google.firebase.ktx.Firebase
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScreenBusquedaEquipos(navController: NavController, competicion: String?) {
+fun ScreenBusquedaEquipos(navController: NavController, competicion: String?, codigo: String?) {
 
     Scaffold(
         topBar = {
@@ -79,34 +78,24 @@ fun ScreenBusquedaEquipos(navController: NavController, competicion: String?) {
             }
         }
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding, competicion)
+        BodyContentPerfil(innerPadding, competicion, codigo, navController)
     }
 
 }
 
 @Composable
-fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
+fun BodyContentPerfil(
+    innerPaddingValues: PaddingValues,
+    competicion: String?,
+    codigo: String?,
+    navController: NavController
+) {
     var textoBuscar by remember { mutableStateOf("") }
     val selecEquiposBusqueda = remember { mutableStateListOf<Equipo>() }
     val resultBusquedaEquipos = remember { mutableStateListOf<Equipo>() }
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val db = FirebaseFirestore.getInstance()
     val isLoading = remember { mutableStateOf(false) }
-    /*
-    val selecEquiposBusqueda = listOf(
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego")
-    )
-    val resultBusquedaEquipos = listOf(
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego"),
-        Equipo("lb", "la bañeza", "1", "diego")
-    )*/
 
     Column(
         modifier = Modifier
@@ -141,7 +130,7 @@ fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
                                 Log.w("busqueda_equipos", "Empieza consulta, $textoBuscar")
                                 resultBusquedaEquipos.clear()
                                 for (document in result) {
-                                    val codigo = document.getString("codigo") ?: ""
+                                    val codigoE = document.getString("codigo") ?: ""
                                     val nombre = document.getString("equipo") ?: ""
                                     val idDocumento = document.id
                                     val creadorId = document.getString("creador") ?: ""
@@ -152,7 +141,7 @@ fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
                                             if (d != null) {
                                                 Log.d("busqueda_equipos", "DocumentSnapshot data: ${d.data}")
                                                 val creadorNombre = d.getString("username") ?: ""
-                                                val equipo = Equipo(codigo, nombre, idDocumento, creadorNombre)
+                                                val equipo = Equipo(codigoE, nombre, idDocumento, creadorNombre)
                                                 resultBusquedaEquipos.add(equipo)
                                             } else {
                                                 Log.d("busqueda_equipos", "No such document")
@@ -186,7 +175,6 @@ fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
                         isLoading.value = false
                     }
                 },
-                //shape = RoundedCornerShape(Constantes.redondeoBoton),
                 modifier = Modifier
                     .padding(all = 8.dp)
                     .clip(RoundedCornerShape(Constantes.redondeoBoton))
@@ -286,8 +274,7 @@ fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
                                     Text(
                                         equipo.codigo.uppercase(Locale.ROOT),
                                         color = if (seleccionado) colorScheme.onTertiaryContainer else colorScheme.onSecondaryContainer,
-                                        fontSize = 20.sp,
-                                        //fontWeight = FontWeight.Bold,
+                                        fontSize = 20.sp
                                     )
                                 }
                             },
@@ -307,6 +294,50 @@ fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
                 }
             }
         }
+        Row (
+            modifier = Modifier
+                .weight(0.1f)
+                .fillMaxWidth()
+                .padding(start = 20.dp, top = 5.dp, end = 20.dp, bottom = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ){
+            Button(
+                onClick = {
+                    val user = Firebase.auth.currentUser
+                    val uid = user?.uid
+
+                    val counterRef = db.collection("counters").document("equiposCounter")
+                    db.runTransaction { transaction ->
+                        val snapshot = transaction.get(counterRef)
+                        val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
+                        transaction.update(counterRef, "counter", newCounter)
+
+                        val competicionesRef = db.collection("competiciones").document(newCounter.toString())
+                        val equipos = selecEquiposBusqueda.map { it.idDocumento }
+                        val competicionData = hashMapOf(
+                            "competicion" to competicion,
+                            "codigo" to codigo,
+                            "nombreBusqueda" to (competicion?.uppercase() ?: ""),
+                            "creador" to uid,
+                            "equipos" to equipos
+                        )
+                        transaction.set(competicionesRef, competicionData)
+                    }.addOnSuccessListener {
+                        Log.d("TAG", "Transaction success!")
+                        Constantes.reiniciarNavegacion(navController)
+                    }.addOnFailureListener { e ->
+                        Log.w("TAG", "Transaction failure.", e)
+                    }
+                },
+                enabled = selecEquiposBusqueda.size > 1,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(Constantes.redondeoBoton)
+            ) {
+                Text(text = "Crear competición")
+            }
+        }
     }
 }
 
@@ -315,7 +346,7 @@ fun BodyContentPerfil(innerPaddingValues: PaddingValues, competicion: String?) {
 fun GreetingPreviewBusquedaEquipo() {
     TuproTheme(darkTheme = false) {
         val navController = rememberNavController()
-        ScreenBusquedaEquipos(navController, "")
+        ScreenBusquedaEquipos(navController, "", "")
     }
 }
 
@@ -324,6 +355,6 @@ fun GreetingPreviewBusquedaEquipo() {
 fun GreetingPreviewDarkBusquedaEquipos() {
     TuproTheme(darkTheme = true) {
         val navController = rememberNavController()
-        ScreenBusquedaEquipos(navController, "")
+        ScreenBusquedaEquipos(navController, "", "")
     }
 }

@@ -51,9 +51,17 @@ fun AppNavigation(){
         composable(AppScreens.ScreenCrearCompeticion.route) {
             ScreenCrearCompeticion(navController)
         }
-        composable(AppScreens.ScreenBusquedaEquipos.route + "/{comp}", arguments = listOf(
-            navArgument("comp") {type = NavType.StringType})) { backStackEntry ->
-            ScreenBusquedaEquipos(navController, backStackEntry.arguments?.getString("comp"))
+        composable(
+            route = "screen_busqueda_equipos/{comp}/{codigo}",
+            arguments = listOf(
+                navArgument("comp") { type = NavType.StringType },
+                navArgument("codigo") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val comp = backStackEntry.arguments?.getString("comp")
+            val codigo = backStackEntry.arguments?.getString("codigo")
+            ScreenBusquedaEquipos(navController, comp, codigo)
         }
+
     }
 }
