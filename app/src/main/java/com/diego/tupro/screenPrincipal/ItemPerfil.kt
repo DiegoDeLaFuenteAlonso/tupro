@@ -147,22 +147,9 @@ fun EstructuraItemPerfil(navController: NavController) {
                                             val batch = db.batch()
 
                                             for (equipo in selecEquipos) {
-                                                val competicionesRef = db.collection("competiciones")
-                                                val query = competicionesRef.whereArrayContains("equipos", equipo.idDocumento)
-                                                query.get().addOnSuccessListener { result ->
-                                                    if (result.isEmpty) {
-                                                        // Si el equipo no está en ninguna competición, se puede eliminar
-                                                        val docRef = db.collection("equipos").document(equipo.idDocumento)
-                                                        batch.delete(docRef)
-                                                    } else {
-                                                        Toast.makeText(context, "El equipo de id: ${equipo.idDocumento} no se pudo eliminar, pertenece a una competición", Toast.LENGTH_SHORT).show()
-                                                        Log.d("eliminar_elementos", "El equipo ${equipo.idDocumento} está en una competición y no se puede eliminar")
-                                                    }
-                                                }.addOnFailureListener { e ->
-                                                    Log.w("eliminar_elementos", "Error al verificar las competiciones del equipo", e)
-                                                }
+                                                val docRef = db.collection("equipos").document(equipo.idDocumento)
+                                                batch.delete(docRef)
                                             }
-
                                             // consulta atomica
                                             batch.commit()
                                                 .addOnSuccessListener {
@@ -171,7 +158,6 @@ fun EstructuraItemPerfil(navController: NavController) {
                                                 .addOnFailureListener { e ->
                                                     Log.w("eliminar_elementos", "Error al eliminar los documentos", e)
                                                 }
-
                                             selecEquipos.clear()
                                         }
                                         showDialogEliminar = false
