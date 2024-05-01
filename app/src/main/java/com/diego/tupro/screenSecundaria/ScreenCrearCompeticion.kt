@@ -1,8 +1,5 @@
 package com.diego.tupro.screenSecundaria
 
-import android.content.Context
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -36,10 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.SoftwareKeyboardController
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,23 +42,17 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.delay
 
 @Composable
-fun ScreenCrearEquipo(navController: NavController) {
+fun ScreenCrearCompeticion(navController: NavController) {
     var textoSnackbar by remember { mutableStateOf("") }
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val paddingBotones = 5.dp
     val focusRequester = remember { FocusRequester() }
-    var textoCodigo by remember { mutableStateOf("") }
-    var textoEquipo by remember { mutableStateOf("") }
-    var errorCodigo by remember { mutableStateOf(false) }
-    var errorEquipo by remember { mutableStateOf(false) }
+    var textoComp by remember { mutableStateOf("") }
+    var errorComp by remember { mutableStateOf(false) }
     var botonesActivos by remember { mutableStateOf(true) }
-    val context = LocalContext.current
 
     Surface {
         Column(
@@ -75,7 +62,7 @@ fun ScreenCrearEquipo(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Crea tu equipo",
+                text = "Crea tu competición",
                 fontSize = 22.sp,
                 modifier = Modifier.padding(top = 10.dp, bottom = 14.dp)
             )
@@ -84,49 +71,21 @@ fun ScreenCrearEquipo(navController: NavController) {
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(36.dp))
 
             TextField(
-                value = textoCodigo,
-                onValueChange = {
-                    if (it.all { char -> char.isLetterOrDigit() } && it.length <= 3) {
-                        textoCodigo = it
-                    }
-                },
-                label = { Text("Abreviatura") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                keyboardActions = KeyboardActions(onNext = { focusRequester.requestFocus() }),
-                modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("${textoCodigo.length}/3") },
-                isError = errorCodigo,
-                trailingIcon = {
-                    (if (errorCodigo) Icons.Default.ErrorOutline else null)?.let {
-                        Icon(
-                            imageVector = it,
-                            contentDescription = "Mensaje de error"
-                        )
-                    }
-                }
-
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            TextField(
-                value = textoEquipo,
+                value = textoComp,
                 onValueChange = {
                     if (it.all { char -> char.isLetterOrDigit() || char.isWhitespace() } && it.length <= 20) {
-                        textoEquipo = it
+                        textoComp = it
                     }
                 },
                 label = { Text("Nombre") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                isError = errorEquipo,
-                supportingText = { Text("${textoEquipo.length}/20") },
+                isError = errorComp,
+                supportingText = { Text("${textoComp.length}/30") },
                 trailingIcon = {
-                    (if (errorEquipo) Icons.Default.ErrorOutline else null)?.let {
+                    (if (errorComp) Icons.Default.ErrorOutline else null)?.let {
                         Icon(
                             imageVector = it,
                             contentDescription = "Mensaje de error"
@@ -164,17 +123,12 @@ fun ScreenCrearEquipo(navController: NavController) {
                 Button(
                     onClick = {
                         botonesActivos = false
-                        crearEquipo(
-                            textoCodigo.trim(),
-                            textoEquipo.trim(),
-                            { nuevoMensaje -> textoSnackbar = nuevoMensaje },
-                            { nuevoMensaje -> errorCodigo = nuevoMensaje },
-                            { nuevoMensaje -> errorEquipo = nuevoMensaje },
-                            { nuevoMensaje -> botonesActivos = nuevoMensaje},
-                            context,
-                            navController,
-                            softwareKeyboardController
-                        )
+                        if (textoComp.trim().isEmpty()) {
+                            errorComp = true
+                            botonesActivos = true
+                            textoSnackbar = "El campo nombre no puede estar vacío"
+                        }
+                        else { navController.navigate("screen_busqueda_equipos/" + textoComp.trim()) }
                     },
                     enabled = botonesActivos,
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
@@ -183,7 +137,7 @@ fun ScreenCrearEquipo(navController: NavController) {
                         .padding(all = paddingBotones)
                 ) {
                     Text(
-                        text = "Crear",
+                        text = "Siguiente",
                         textAlign = TextAlign.Center
                     )
                 }
@@ -214,78 +168,20 @@ fun ScreenCrearEquipo(navController: NavController) {
     }
 }
 
-fun crearEquipo(
-    textoCodigo: String,
-    textoEquipo: String,
-    actualizarTextoSnackbar: (String) -> Unit,
-    actualizarErrorCodigo: (Boolean) -> Unit,
-    actualizarErrorEquipo: (Boolean) -> Unit,
-    botonesActivos: (Boolean) -> Unit,
-    context: Context,
-    navController: NavController,
-    softwareKeyboardController: SoftwareKeyboardController?
-) {
-    val db = Firebase.firestore
-    val auth = Firebase.auth
-    val currentUser = auth.currentUser
-    actualizarErrorCodigo(false)
-    actualizarErrorEquipo(false)
-
-    if (textoCodigo.isEmpty() || textoEquipo.isEmpty()) {
-        botonesActivos(true)
-        actualizarTextoSnackbar("Ambos campos son necesarios")
-        if (textoCodigo.isEmpty()) actualizarErrorCodigo(true)
-        if (textoEquipo.isEmpty()) actualizarErrorEquipo(true)
-    } else {
-        // Comprueba si el usuario está autenticado
-        if (currentUser != null) {
-            // Obtén el contador actual
-            softwareKeyboardController?.hide()
-            val counterRef = db.collection("counters").document("equiposCounter")
-            db.runTransaction { transaction ->
-                val snapshot = transaction.get(counterRef)
-                val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
-                transaction.update(counterRef, "counter", newCounter)
-
-                // Usa el contador como el ID del nuevo documento
-                val equipo = hashMapOf(
-                    "codigo" to textoCodigo,
-                    "equipo" to textoEquipo,
-                    "creador" to currentUser.uid,
-                    "nombreBusqueda" to textoEquipo.uppercase()
-                )
-                db.collection("equipos").document(newCounter.toString()).set(equipo)
-            }.addOnSuccessListener {
-                Log.d("crear_equipo", "Equipo creado con éxito")
-                Toast.makeText(context, "Equipo creado con éxito", Toast.LENGTH_SHORT).show()
-                navController.popBackStack()
-            }.addOnFailureListener { e ->
-                botonesActivos(true)
-                Log.w("crear_equipo", "Error al crear el equipo", e)
-                actualizarTextoSnackbar("Error al crear el equipo")
-            }
-        } else {
-            botonesActivos(true)
-            Log.w("crear_equipo", "Usuario no autenticado")
-            actualizarTextoSnackbar("Usuario no autenticado")
-        }
-    }
-}
-
 @Preview(showSystemUi = true)
 @Composable
-fun GreetingPreviewEquipo() {
+fun GreetingPreviewCompeticion() {
     TuproTheme(darkTheme = false) {
         val navController = rememberNavController()
-        ScreenCrearEquipo(navController)
+        ScreenCrearCompeticion(navController)
     }
 }
 
 @Preview(showSystemUi = true)
 @Composable
-fun GreetingPreviewDarkEquipo() {
+fun GreetingPreviewDarkCompeticion() {
     TuproTheme(darkTheme = true) {
         val navController = rememberNavController()
-        ScreenCrearEquipo(navController)
+        ScreenCrearCompeticion(navController)
     }
 }

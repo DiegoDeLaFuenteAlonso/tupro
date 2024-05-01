@@ -67,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -109,7 +110,6 @@ fun EstructuraItemPerfil(navController: NavController) {
     val modoEdicion = remember { mutableStateOf(false) }
     val selecEquipos = remember { mutableStateListOf<Equipo>() }
     var showDialogEliminar by remember { mutableStateOf(false) }
-    var cargarColumna by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -143,18 +143,20 @@ fun EstructuraItemPerfil(navController: NavController) {
                                     onClick = {
                                         if (selecEquipos.isNotEmpty()) {
                                             val db = FirebaseFirestore.getInstance()
+                                            val batch = db.batch()
+
                                             for (equipo in selecEquipos) {
                                                 val docRef = db.collection("equipos").document(equipo.idDocumento)
-                                                docRef.delete()
-                                                    .addOnSuccessListener {
-                                                        Log.d("eliminar_elementos", "Documento eliminado con éxito")
-                                                    }
-                                                    .addOnFailureListener { e ->
-                                                        Log.w("eliminar_elementos", "Error al eliminar el documento", e)
-                                                    }
+                                                batch.delete(docRef)
                                             }
-                                            cargarColumna = false
-                                            cargarColumna = true
+                                            // consulta atomica
+                                            batch.commit()
+                                                .addOnSuccessListener {
+                                                    Log.d("eliminar_elementos", "Documentos eliminados con éxito")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Log.w("eliminar_elementos", "Error al eliminar los documentos", e)
+                                                }
                                             selecEquipos.clear()
                                         }
                                         showDialogEliminar = false
@@ -162,7 +164,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                                     colors = ButtonDefaults.filledTonalButtonColors(colorScheme.errorContainer)
                                 ) {
                                     Text(
-                                        "Continuar",
+                                        "Eliminar",
                                         textAlign = TextAlign.Center,
                                         color = colorScheme.onErrorContainer
                                     )
@@ -225,7 +227,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                                         )
                                 ) {
                                     Text(
-                                        text = "\tCorreo: $correo"/*${userSession!!.email}*/,
+                                        text = "\tCorreo: $correo",
                                         color = colorScheme.onSecondaryContainer,
                                         fontSize = 18.sp
                                     )
@@ -314,6 +316,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                         DropdownMenuItem(
                             onClick = {
                                 showMenu = false
+                                navController.navigate("screen_crear_competicion")
                             },
                             text = { Text(text = "Crear competicion") }
                         )
@@ -324,7 +327,7 @@ fun EstructuraItemPerfil(navController: NavController) {
         bottomBar = { BarraInferior(navController = navController, 2) }
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, cargarColumna)
+        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion)
 
         val sheetState = rememberModalBottomSheetState()
 
@@ -352,7 +355,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                         Text(text = "Cerrar Sesion", textAlign = TextAlign.Center)
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp)) // Espacio entre los botones
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     FilledTonalButton(
                         onClick = {
@@ -441,8 +444,7 @@ fun BodyContentPerfil(
     innerPadding: PaddingValues,
     sessionManager: SessionManager,
     selecEquipos: SnapshotStateList<Equipo>,
-    modoEdicion: MutableState<Boolean>,
-    cargarColumna: Boolean
+    modoEdicion: MutableState<Boolean>
 ) {
     val auth = Firebase.auth
     val currentUser = auth.currentUser
@@ -535,6 +537,7 @@ fun BodyContentPerfil(
                                 .whereEqualTo("creador", user.uid)
                                 .addSnapshotListener { snapshot, e ->
                                     isLoading.value = true
+                                    listaEquipos.clear()
                                     if (e != null) {
                                         Log.w("disparadon_consulta_equipos", "El disparador ha fallado, ", e)
                                         return@addSnapshotListener
@@ -572,84 +575,81 @@ fun BodyContentPerfil(
                                     isLoading.value = false
                                 }
                         }
-                        if(cargarColumna){
-                            // Mostrar la lista de equipos o un mensaje, dependiendo del estado de carga
-                            if (isLoading.value) {
-                                // Mostrar un indicador de carga mientras la consulta está en progreso
-                                Box (
-                                    modifier = Modifier
-                                        .fillMaxSize(),
-                                    contentAlignment = Alignment.Center,
-                                ){
-                                    CircularProgressIndicator()
-                                }
-                            } else if (listaEquipos.isEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = "Aun no has creado\nningún equipo",
-                                        fontSize = 22.sp,
-                                        color = colorScheme.secondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            } else {
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                ) {
-                                    items(listaEquipos) { equipo ->
-                                        val seleccionado = selecEquipos.contains(equipo)
-                                        ListItem(
-                                            leadingContent = {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth(0.2f)
-                                                        .aspectRatio(1f)
-                                                        .background(if (seleccionado) colorScheme.tertiaryContainer else colorScheme.secondaryContainer),
-                                                    //.clip(CircleShape),
-                                                    contentAlignment = Alignment.Center
+                        if (isLoading.value) {
+                            // Mostrar un indicador de carga mientras la consulta está en progreso
+                            Box (
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ){
+                                CircularProgressIndicator()
+                            }
+                        } else if (listaEquipos.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Aun no has creado\nningún equipo",
+                                    fontSize = 22.sp,
+                                    color = colorScheme.secondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                            ) {
+                                items(listaEquipos) { equipo ->
+                                    val seleccionado = selecEquipos.contains(equipo)
+                                    ListItem(
+                                        leadingContent = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(0.2f)
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(Constantes.redondeoBoton))
+                                                    .background(if (seleccionado) colorScheme.tertiaryContainer else colorScheme.secondaryContainer),
+                                                contentAlignment = Alignment.Center
 
-                                                ) {
-                                                    Text(
-                                                        equipo.codigo.toUpperCase(Locale.ROOT),
-                                                        color = if (seleccionado) colorScheme.onTertiaryContainer else colorScheme.onSecondaryContainer,
-                                                        fontSize = 20.sp,
-                                                        //fontWeight = FontWeight.Bold,
-                                                    )
+                                            ) {
+                                                Text(
+                                                    equipo.codigo.uppercase(Locale.ROOT),
+                                                    color = if (seleccionado) colorScheme.onTertiaryContainer else colorScheme.onSecondaryContainer,
+                                                    fontSize = 20.sp,
+                                                    //fontWeight = FontWeight.Bold,
+                                                )
+                                            }
+                                        },
+                                        headlineContent = { Text(equipo.equipo) },
+                                        supportingContent = { Text("#" + equipo.idDocumento) },
+                                        trailingContent = { Text(equipo.creador) },
+                                        modifier = Modifier.combinedClickable(
+                                            onClick = {
+                                                if (modoEdicion.value) {
+                                                    if (seleccionado) {
+                                                        selecEquipos.remove(equipo)
+                                                        if(selecEquipos.isEmpty()){
+                                                            modoEdicion.value = false
+                                                        }
+                                                    } else {
+                                                        selecEquipos.add(equipo)
+                                                    }
                                                 }
                                             },
-                                            headlineContent = { Text(equipo.equipo) },
-                                            supportingContent = { Text("#" + equipo.idDocumento) },
-                                            trailingContent = { Text(equipo.creador) },
-                                            modifier = Modifier.combinedClickable(
-                                                onClick = {
-                                                    if (modoEdicion.value) {
-                                                        if (seleccionado) {
-                                                            selecEquipos.remove(equipo)
-                                                            if(selecEquipos.isEmpty()){
-                                                                modoEdicion.value = false
-                                                            }
-                                                        } else {
-                                                            selecEquipos.add(equipo)
-                                                        }
-                                                    }
-                                                },
-                                                onLongClick = {
-                                                    modoEdicion.value = true
-                                                    selecEquipos.add(equipo)
-                                                }
-                                            )
+                                            onLongClick = {
+                                                modoEdicion.value = true
+                                                selecEquipos.add(equipo)
+                                            }
                                         )
-                                        HorizontalDivider(
-                                            thickness = 1.dp,
-                                            modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-                                        )
-                                    }
+                                    )
+                                    HorizontalDivider(
+                                        thickness = 1.dp,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                    )
                                 }
                             }
                         }

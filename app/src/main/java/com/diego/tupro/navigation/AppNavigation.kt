@@ -2,13 +2,16 @@ package com.diego.tupro.navigation
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.diego.tupro.screenPrincipal.ItemBuscar
 import com.diego.tupro.screenPrincipal.ItemInicio
 import com.diego.tupro.screenPrincipal.ItemPerfil
+import com.diego.tupro.screenSecundaria.ScreenBusquedaEquipos
+import com.diego.tupro.screenSecundaria.ScreenCrearCompeticion
 import com.diego.tupro.screenSecundaria.ScreenCrearEquipo
 import com.diego.tupro.screenSecundaria.ScreenPartido
 import com.diego.tupro.screenSecundaria.ScreenRegistro
@@ -44,6 +47,13 @@ fun AppNavigation(){
         }
         composable(AppScreens.ScreenCrearEquipo.route) {
             ScreenCrearEquipo(navController)
+        }
+        composable(AppScreens.ScreenCrearCompeticion.route) {
+            ScreenCrearCompeticion(navController)
+        }
+        composable(AppScreens.ScreenBusquedaEquipos.route + "/{comp}", arguments = listOf(
+            navArgument("comp") {type = NavType.StringType})) { backStackEntry ->
+            ScreenBusquedaEquipos(navController, backStackEntry.arguments?.getString("comp"))
         }
     }
 }
