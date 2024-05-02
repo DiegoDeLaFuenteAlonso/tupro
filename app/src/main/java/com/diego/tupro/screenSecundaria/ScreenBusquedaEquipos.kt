@@ -113,7 +113,8 @@ fun BodyContentPerfil(
             TextField(
                 value = textoBuscar,
                 onValueChange = { textoBuscar = it },
-                singleLine = true
+                singleLine = true,
+                label = { Text(text = "Buscar")}
             )
             IconButton(
                 onClick = {

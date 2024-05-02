@@ -333,54 +333,33 @@ fun registrarUsuario(
                                                 // Guardar el nombre de usuario en la base de datos
                                                 val user = hashMapOf(
                                                     "username" to textoUsuario,
-                                                    "email" to textoCorreo,
+                                                    "usernameBusqueda" to textoUsuario.uppercase(),
+                                                    "email" to textoCorreo
                                                 )
                                                 db.collection("users").document(auth.uid!!)
                                                     .set(user)
                                                     .addOnSuccessListener {
-                                                        Log.d(
-                                                            "registro",
-                                                            "Usuario escrito en el documento con exito"
-                                                        )
+                                                        Log.d("registro", "Usuario escrito en el documento con exito")
 
                                                         // Enviar correo de verificación
                                                         auth.currentUser?.sendEmailVerification()
                                                             ?.addOnCompleteListener { task3 ->
                                                                 if (task3.isSuccessful) {
-                                                                    Log.d(
-                                                                        "registro",
-                                                                        "Correo de verificación enviado"
-                                                                    )
+                                                                    Log.d("registro", "Correo de verificación enviado")
                                                                 } else {
-                                                                    Log.d(
-                                                                        "registro",
-                                                                        "Error al enviar el correo de verificación"
+                                                                    Log.d("registro", "Error al enviar el correo de verificación"
                                                                     )
                                                                     navController.popBackStack()
                                                                 }
                                                             }
                                                         navController.navigate("screen_verificacion")
-
-                                                        // redirigimos al inicio y borramos la pila del navController
-                                                        /*
-                                                        Constantes.reiniciarNavegacion(navController)
-                                                        val sessionManager = SessionManager(context)
-                                                        sessionManager.saveUserDetails(textoCorreo, textoUsuario)
-                                                        */
                                                     }
                                                     .addOnFailureListener { e ->
-                                                        Log.w(
-                                                            "registro",
-                                                            "Error al escribir el usuario en el documento",
-                                                            e
-                                                        )
+                                                        Log.w("registro", "Error al escribir el usuario en el documento", e)
                                                         actualizarTextoSnackbar("Error al guardar el usuario")
                                                     }
                                             } else {
-                                                Log.d(
-                                                    "registro",
-                                                    "Hubo un error al registrar al usuario"
-                                                )
+                                                Log.d("registro", "Hubo un error al registrar al usuario")
                                                 actualizarTextoSnackbar("Error al realizar el registro")
                                             }
                                         }
