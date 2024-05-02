@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -33,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +55,8 @@ fun ScreenCrearCompeticion(navController: NavController) {
     var textoComp by remember { mutableStateOf("") }
     var errorComp by remember { mutableStateOf(false) }
     var botonesActivos by remember { mutableStateOf(true) }
+    var textoCodigo by remember { mutableStateOf("") }
+    var errorCodigo by remember { mutableStateOf(false) }
 
     Surface {
         Column(
@@ -71,7 +75,34 @@ fun ScreenCrearCompeticion(navController: NavController) {
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp)
             )
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            TextField(
+                value = textoCodigo,
+                onValueChange = {
+                    if (it.all { char -> char.isLetterOrDigit() } && it.length <= 3) {
+                        textoCodigo = it
+                    }
+                },
+                label = { Text("Abreviatura") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusRequester.requestFocus() }),
+                modifier = Modifier.fillMaxWidth(),
+                supportingText = { Text("${textoCodigo.length}/3") },
+                isError = errorCodigo,
+                trailingIcon = {
+                    (if (errorCodigo) Icons.Default.ErrorOutline else null)?.let {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = "Mensaje de error"
+                        )
+                    }
+                }
+
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             TextField(
                 value = textoComp,
@@ -123,12 +154,13 @@ fun ScreenCrearCompeticion(navController: NavController) {
                 Button(
                     onClick = {
                         botonesActivos = false
-                        if (textoComp.trim().isEmpty()) {
+                        if (textoComp.trim().isEmpty() || textoCodigo.trim().isEmpty()) {
                             errorComp = true
+                            errorCodigo = true
                             botonesActivos = true
-                            textoSnackbar = "El campo nombre no puede estar vacío"
+                            textoSnackbar = "Ningún campo puede estar vacío"
                         }
-                        else { navController.navigate("screen_busqueda_equipos/" + textoComp.trim()) }
+                        else { navController.navigate("screen_busqueda_equipos/" + textoComp.trim() + "/" + textoCodigo.trim()) }
                     },
                     enabled = botonesActivos,
                     shape = RoundedCornerShape(Constantes.redondeoBoton),

@@ -47,11 +47,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
-
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -80,18 +78,19 @@ import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
+import com.google.android.gms.tasks.Task
+import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Locale
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemPerfil(navController: NavController) {
-    // val userSession by userViewModel.userSession.observeAsState()
     EstructuraItemPerfil(navController)
 }
 
@@ -109,6 +108,7 @@ fun EstructuraItemPerfil(navController: NavController) {
     val context = LocalContext.current
     val modoEdicion = remember { mutableStateOf(false) }
     val selecEquipos = remember { mutableStateListOf<Equipo>() }
+    val selecComp = remember { mutableStateListOf<Comp>() }
     var showDialogEliminar by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -116,7 +116,7 @@ fun EstructuraItemPerfil(navController: NavController) {
             Column {
                 if(modoEdicion.value){
                     TopAppBar(
-                        title = { Text(text = "Seleccionados: ${selecEquipos.size}") },
+                        title = { Text(text = "Seleccionados: ${selecEquipos.size + selecComp.size}") },
                         navigationIcon = {
                             IconButton(onClick = {
                                 modoEdicion.value = false
@@ -137,7 +137,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                         AlertDialog(
                             onDismissRequest = { showDialogEliminar = false },
                             title = { Text("Confirmación") },
-                            text = { Text("Se van a eliminar ${selecEquipos.size} elemento(s), ¿deseas continuar?") },
+                            text = { Text("Se van a eliminar ${selecEquipos.size + selecComp.size} elemento(s), ¿deseas continuar?") },
                             confirmButton = {
                                 FilledTonalButton(
                                     onClick = {
@@ -158,6 +158,23 @@ fun EstructuraItemPerfil(navController: NavController) {
                                                     Log.w("eliminar_elementos", "Error al eliminar los documentos", e)
                                                 }
                                             selecEquipos.clear()
+                                        }
+                                        if(selecComp.isNotEmpty()){
+                                            val db = FirebaseFirestore.getInstance()
+                                            val batch = db.batch()
+
+                                            for (comp in selecComp) {
+                                                val docRef = db.collection("competiciones").document(comp.idDocumento)
+                                                batch.delete(docRef)
+                                            }
+                                            batch.commit()
+                                                .addOnSuccessListener {
+                                                    Log.d("eliminar_elementos", "Documentos eliminados con éxito")
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    Log.w("eliminar_elementos", "Error al eliminar los documentos", e)
+                                                }
+                                            selecComp.clear()
                                         }
                                         showDialogEliminar = false
                                     },
@@ -327,7 +344,7 @@ fun EstructuraItemPerfil(navController: NavController) {
         bottomBar = { BarraInferior(navController = navController, 2) }
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion)
+        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, selecComp)
 
         val sheetState = rememberModalBottomSheetState()
 
@@ -444,7 +461,8 @@ fun BodyContentPerfil(
     innerPadding: PaddingValues,
     sessionManager: SessionManager,
     selecEquipos: SnapshotStateList<Equipo>,
-    modoEdicion: MutableState<Boolean>
+    modoEdicion: MutableState<Boolean>,
+    selecComp: SnapshotStateList<Comp>
 ) {
     val auth = Firebase.auth
     val currentUser = auth.currentUser
@@ -537,7 +555,7 @@ fun BodyContentPerfil(
                                 .whereEqualTo("creador", user.uid)
                                 .addSnapshotListener { snapshot, e ->
                                     isLoading.value = true
-                                    listaEquipos.clear()
+                                    //listaEquipos.clear()
                                     if (e != null) {
                                         Log.w("disparadon_consulta_equipos", "El disparador ha fallado, ", e)
                                         return@addSnapshotListener
@@ -632,7 +650,7 @@ fun BodyContentPerfil(
                                                 if (modoEdicion.value) {
                                                     if (seleccionado) {
                                                         selecEquipos.remove(equipo)
-                                                        if(selecEquipos.isEmpty()){
+                                                        if(selecComp.isEmpty() && selecEquipos.isEmpty()){
                                                             modoEdicion.value = false
                                                         }
                                                     } else {
@@ -655,12 +673,172 @@ fun BodyContentPerfil(
                         }
                     }
                 }
+                else if(index == 1){
+                    if (user != null) {
+                        val listaComp = remember { mutableStateListOf<Comp>() }
+                        val isLoading = remember { mutableStateOf(true) }
+
+                        LaunchedEffect(key1 = user) {
+                            db.collection("competiciones")
+                                .whereEqualTo("creador", user.uid)
+                                .addSnapshotListener { snapshot, e ->
+                                    isLoading.value = true
+                                    listaComp.clear()
+                                    if (e != null) {
+                                        Log.w("disparador_consulta_equipos", "El disparador ha fallado, ", e)
+                                        return@addSnapshotListener
+                                    }
+
+                                    if (snapshot != null && !snapshot.isEmpty) {
+                                        // Realizar la operación de borrado del array
+
+                                        snapshot.documents.forEach { document ->
+                                            val equipos = document.get("equipos") as List<*>
+                                            val equiposExistentes = mutableListOf<String>()
+                                            val tasks = mutableListOf<Task<DocumentSnapshot>>()
+
+                                            equipos.forEach { idEquipo ->
+                                                val equipoRef = db.collection("equipos").document(idEquipo.toString())
+                                                val task = equipoRef.get()
+                                                tasks.add(task)
+                                                task.addOnSuccessListener { equipoDocument ->
+                                                    if (equipoDocument.exists()) {
+                                                        equiposExistentes.add(idEquipo.toString())
+                                                    }
+                                                }
+                                            }
+
+                                            Tasks.whenAllSuccess<DocumentSnapshot>(tasks).addOnSuccessListener {
+                                                if (equipos.size != equiposExistentes.size) {
+                                                    document.reference.update("equipos", equiposExistentes)
+                                                }
+                                            }
+                                        }
+
+
+                                        listaComp.clear()
+                                        for (document in snapshot.documents) {
+                                            val codigo = document.getString("codigo") ?: ""
+                                            val comp = document.getString("competicion") ?: ""
+                                            val idDocumento = document.id
+                                            val creadorId = document.getString("creador") ?: ""
+
+                                            db.collection("users").document(creadorId)
+                                                .get()
+                                                .addOnSuccessListener { userDocument ->
+                                                    val username = userDocument.getString("username") ?: ""
+                                                    listaComp.add(
+                                                        Comp(
+                                                            codigo,
+                                                            comp,
+                                                            idDocumento,
+                                                            username
+                                                        )
+                                                    )
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
+                                                }
+                                        }
+                                    } else {
+                                        Log.d("disparadon_consulta_equipos", "Current data: null")
+                                    }
+                                    // Actualizar el estado de carga cuando la consulta haya terminado
+                                    isLoading.value = false
+                                }
+                        }
+                        if (isLoading.value) {
+                            // Mostrar un indicador de carga mientras la consulta está en progreso
+                            Box (
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                contentAlignment = Alignment.Center,
+                            ){
+                                CircularProgressIndicator()
+                            }
+                        } else if (listaComp.isEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Aun no has creado\nningún equipo",
+                                    fontSize = 22.sp,
+                                    color = colorScheme.secondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                            ) {
+                                items(listaComp) { comp ->
+                                    val seleccionado = selecComp.contains(comp)
+                                    ListItem(
+                                        leadingContent = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(0.2f)
+                                                    .aspectRatio(1f)
+                                                    .clip(RoundedCornerShape(Constantes.redondeoBoton))
+                                                    .background(if (seleccionado) colorScheme.tertiaryContainer else colorScheme.secondaryContainer),
+                                                contentAlignment = Alignment.Center
+
+                                            ) {
+                                                Text(
+                                                    comp.codigo.uppercase(Locale.ROOT),
+                                                    color = if (seleccionado) colorScheme.onTertiaryContainer else colorScheme.onSecondaryContainer,
+                                                    fontSize = 20.sp
+                                                )
+                                            }
+                                        },
+                                        headlineContent = { Text(comp.equipo) },
+                                        supportingContent = { Text("#" + comp.idDocumento) },
+                                        trailingContent = { Text(comp.creador) },
+                                        modifier = Modifier.combinedClickable(
+                                            onClick = {
+                                                if (modoEdicion.value) {
+                                                    if (seleccionado) {
+                                                        selecComp.remove(comp)
+                                                        if(selecComp.isEmpty() && selecEquipos.isEmpty()){
+                                                            modoEdicion.value = false
+                                                        }
+                                                    } else {
+                                                        selecComp.add(comp)
+                                                    }
+                                                }
+                                            },
+                                            onLongClick = {
+                                                modoEdicion.value = true
+                                                selecComp.add(comp)
+                                            }
+                                        )
+                                    )
+                                    HorizontalDivider(
+                                        thickness = 1.dp,
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 data class Equipo(
+    val codigo: String,
+    val equipo: String,
+    val idDocumento: String,
+    val creador: String
+)
+
+data class Comp(
     val codigo: String,
     val equipo: String,
     val idDocumento: String,
