@@ -324,9 +324,11 @@ fun BodyContentPerfil(
                         )
                         transaction.set(competicionesRef, competicionData)
                     }.addOnSuccessListener {
+                        /*TODO*/
                         Log.d("TAG", "Transaction success!")
                         Constantes.reiniciarNavegacion(navController)
                     }.addOnFailureListener { e ->
+                        /*TODO*/
                         Log.w("TAG", "Transaction failure.", e)
                     }
                 },
