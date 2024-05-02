@@ -8,23 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +27,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -50,9 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.diego.tupro.Constantes
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.ktx.Firebase
 import java.util.Locale
 
 
@@ -96,7 +86,7 @@ fun BodyContentBuscar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
-            OutlinedTextField(
+            TextField(
                 value = textoBuscar,
                 onValueChange = { textoBuscar = it },
                 singleLine = true,
@@ -106,133 +96,230 @@ fun BodyContentBuscar(
                 onClick = {
                     textoBuscar = textoBuscar.trim()
                     if(textoBuscar.isNotEmpty()){
+                        isLoading.value = true
                         val equiposRef = db.collection("equipos")
                         val competicionesRef = db.collection("competiciones")
                         val usersRef = db.collection("users")
 
-                        val queryEquipos = equiposRef
-                            .orderBy("nombreBusqueda")
-                            .startAt(textoBuscar.uppercase())
-                            .endAt(textoBuscar.uppercase() + '\uf8ff')
+                        if(!textoBuscar.startsWith("#")) {
+                            val queryEquipos = equiposRef
+                                .orderBy("nombreBusqueda")
+                                .startAt(textoBuscar.uppercase())
+                                .endAt(textoBuscar.uppercase() + '\uf8ff')
 
-                        val queryCompeticiones = competicionesRef
-                            .orderBy("nombreBusqueda")
-                            .startAt(textoBuscar.uppercase())
-                            .endAt(textoBuscar.uppercase() + '\uf8ff')
+                            val queryCompeticiones = competicionesRef
+                                .orderBy("nombreBusqueda")
+                                .startAt(textoBuscar.uppercase())
+                                .endAt(textoBuscar.uppercase() + '\uf8ff')
 
-                        val queryUsers = usersRef
-                            .orderBy("usernameBusqueda")
-                            .startAt(textoBuscar.uppercase())
-                            .endAt(textoBuscar.uppercase() + '\uf8ff')
+                            val queryUsers = usersRef
+                                .orderBy("usernameBusqueda")
+                                .startAt(textoBuscar.uppercase())
+                                .endAt(textoBuscar.uppercase() + '\uf8ff')
 
-                        try {
-                            isLoading.value = true
-                            queryEquipos.get().addOnSuccessListener { result ->
-                                Log.w("busqueda_equipos", "Empieza consulta, $textoBuscar")
-                                resultBusqueda.clear()
-                                for (document in result) {
-                                    val codigoE = document.getString("codigo") ?: ""
-                                    val nombre = document.getString("equipo") ?: ""
-                                    val idDocumento = document.id
-                                    val creadorId = document.getString("creador") ?: ""
+                            try {
+                                queryEquipos.get().addOnSuccessListener { result ->
+                                    Log.w("busqueda_equipos", "Empieza consulta, $textoBuscar")
+                                    resultBusqueda.clear()
+                                    for (document in result) {
+                                        val codigoE = document.getString("codigo") ?: ""
+                                        val nombre = document.getString("equipo") ?: ""
+                                        val idDocumento = document.id
+                                        val creadorId = document.getString("creador") ?: ""
 
-                                    usersRef.document(creadorId).get()
-                                        .addOnSuccessListener { d ->
-                                            if (d != null) {
-                                                Log.d("busqueda_equipos", "DocumentSnapshot data: ${d.data}")
-                                                val creadorNombre = d.getString("username") ?: ""
-                                                val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
-                                                resultBusqueda.add(equipo)
-                                            } else {
-                                                Log.d("busqueda_equipos", "No such document")
+                                        usersRef.document(creadorId).get()
+                                            .addOnSuccessListener { d ->
+                                                if (d != null) {
+                                                    Log.d("busqueda_equipos", "DocumentSnapshot data: ${d.data}")
+                                                    val creadorNombre = d.getString("username") ?: ""
+                                                    val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
+                                                    resultBusqueda.add(equipo)
+                                                } else {
+                                                    Log.d("busqueda_equipos", "No such document")
+                                                }
                                             }
-                                        }
-                                        .addOnFailureListener { exception ->
-                                            Log.d("busqueda_equipos", "get failed with ", exception)
-                                        }
-                                        .addOnCompleteListener { task ->
-                                            if (task.isSuccessful) {
-                                                Log.d("busqueda_equipos", "Query completed successfully")
+                                            .addOnFailureListener { exception ->
+                                                Log.d("busqueda_equipos", "get failed with ", exception)
                                             }
-                                        }
-                                        .addOnCanceledListener {
-                                            Log.d("busqueda_equipos", "Query was cancelled")
-                                        }
+                                            .addOnCompleteListener { task ->
+                                                if (task.isSuccessful) {
+                                                    Log.d("busqueda_equipos", "Query completed successfully")
+                                                }
+                                            }
+                                            .addOnCanceledListener {
+                                                Log.d("busqueda_equipos", "Query was cancelled")
+                                            }
+                                    }
+                                    Log.w("busqueda_equipos", "Acaba consulta, $textoBuscar")
+                                }.addOnFailureListener { exception ->
+                                    Log.w("busqueda_equipos", "Error getting documents: ", exception
+                                    )
+                                }.addOnCompleteListener {
+                                    Log.w("busqueda_equipos", "consulta realizada bien")
+                                    softwareKeyboardController?.hide()
+                                }.addOnCanceledListener {
+                                    Log.w("busqueda_equipos", "consulta cancelada")
+                                    resultBusqueda.clear()
                                 }
-                                Log.w("busqueda_equipos", "Acaba consulta, $textoBuscar")
-                            }.addOnFailureListener { exception ->
-                                Log.w("busqueda_equipos", "Error getting documents: ", exception)
-                            }.addOnCompleteListener {
-                                Log.w("busqueda_equipos", "consulta realizada bien")
-                                softwareKeyboardController?.hide()
-                            }.addOnCanceledListener {
-                                Log.w("busqueda_equipos", "consulta cancelada")
-                                resultBusqueda.clear()
-                            }
 
-                            queryCompeticiones.get().addOnSuccessListener { result ->
-                                Log.w("busqueda_competiciones", "Empieza consulta, $textoBuscar")
-                                for (document in result) {
-                                    val codigoE = document.getString("codigo") ?: ""
-                                    val nombre = document.getString("competicion") ?: ""
-                                    val idDocumento = document.id
-                                    val creadorId = document.getString("creador") ?: ""
+                                queryCompeticiones.get().addOnSuccessListener { result ->
+                                    Log.w("busqueda_competiciones", "Empieza consulta, $textoBuscar")
+                                    for (document in result) {
+                                        val codigoE = document.getString("codigo") ?: ""
+                                        val nombre = document.getString("competicion") ?: ""
+                                        val idDocumento = document.id
+                                        val creadorId = document.getString("creador") ?: ""
 
-                                    usersRef.document(creadorId).get()
-                                        .addOnSuccessListener { d ->
-                                            if (d != null) {
-                                                Log.d("busqueda_competiciones", "DocumentSnapshot data: ${d.data}")
-                                                val creadorNombre = d.getString("username") ?: ""
-                                                val comp = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competición")
-                                                resultBusqueda.add(comp)
-                                            } else {
-                                                Log.d("busqueda_competiciones", "No such document")
+                                        usersRef.document(creadorId).get()
+                                            .addOnSuccessListener { d ->
+                                                if (d != null) {
+                                                    Log.d("busqueda_competiciones", "DocumentSnapshot data: ${d.data}")
+                                                    val creadorNombre =
+                                                        d.getString("username") ?: ""
+                                                    val comp = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competición")
+                                                    resultBusqueda.add(comp)
+                                                } else {
+                                                    Log.d("busqueda_competiciones", "No such document")
+                                                }
                                             }
-                                        }
-                                        .addOnFailureListener { exception ->
-                                            Log.d("busqueda_competiciones", "get failed with ", exception)
-                                        }
-                                        .addOnCompleteListener { task ->
-                                            if (task.isSuccessful) {
-                                                Log.d("busqueda_competiciones", "Query completed successfully")
+                                            .addOnFailureListener { exception ->
+                                                Log.d("busqueda_competiciones", "get failed with ", exception)
                                             }
-                                        }
-                                        .addOnCanceledListener {
-                                            Log.d("busqueda_competiciones", "Query was cancelled")
-                                        }
+                                            .addOnCompleteListener { task ->
+                                                if (task.isSuccessful) {
+                                                    Log.d("busqueda_competiciones", "Query completed successfully")
+                                                }
+                                            }
+                                            .addOnCanceledListener {
+                                                Log.d("busqueda_competiciones", "Query was cancelled")
+                                            }
+                                    }
+                                    Log.w("busqueda_competiciones", "Acaba consulta, $textoBuscar")
+                                }.addOnFailureListener { exception ->
+                                    Log.w(
+                                        "busqueda_competiciones",
+                                        "Error getting documents: ",
+                                        exception
+                                    )
+                                }.addOnCompleteListener {
+                                    Log.w("busqueda_competiciones", "consulta realizada bien")
+                                    softwareKeyboardController?.hide()
+                                }.addOnCanceledListener {
+                                    Log.w("busqueda_competiciones", "consulta cancelada")
+                                    resultBusqueda.clear()
                                 }
-                                Log.w("busqueda_competiciones", "Acaba consulta, $textoBuscar")
-                            }.addOnFailureListener { exception ->
-                                Log.w("busqueda_competiciones", "Error getting documents: ", exception)
-                            }.addOnCompleteListener {
-                                Log.w("busqueda_competiciones", "consulta realizada bien")
-                                softwareKeyboardController?.hide()
-                            }.addOnCanceledListener {
-                                Log.w("busqueda_competiciones", "consulta cancelada")
-                                resultBusqueda.clear()
-                            }
 
-                            queryUsers.get().addOnSuccessListener { result ->
-                                Log.w("busqueda_usuarios", "Empieza consulta, $textoBuscar")
-                                for (document in result) {
-                                    val nombre = document.getString("username") ?: ""
-                                    val codigo = nombre.uppercase().substring(0,1)
-                                    val idDocumento = document.id
-                                    resultBusqueda.add(ItemBusqueda(codigo, nombre, idDocumento, "", "Usuario"))
+                                queryUsers.get().addOnSuccessListener { result ->
+                                    Log.w("busqueda_usuarios", "Empieza consulta, $textoBuscar")
+                                    for (document in result) {
+                                        val nombre = document.getString("username") ?: ""
+                                        val codigo = nombre.uppercase().substring(0, 1)
+                                        val idDocumento = document.id
+                                        resultBusqueda.add(ItemBusqueda(codigo, nombre, idDocumento, "", "Usuario"))
+                                    }
+                                    Log.w("busqueda_usuarios", "Acaba consulta, $textoBuscar")
+                                }.addOnFailureListener { exception ->
+                                    Log.w("busqueda_usuarios", "Error getting documents: ", exception)
+                                }.addOnCompleteListener {
+                                    Log.w("busqueda_usuarios", "consulta realizada bien")
+                                    softwareKeyboardController?.hide()
+                                }.addOnCanceledListener {
+                                    Log.w("busqueda_usuarios", "consulta cancelada")
+                                    resultBusqueda.clear()
                                 }
-                                Log.w("busqueda_usuarios", "Acaba consulta, $textoBuscar")
-                            }.addOnFailureListener { exception ->
-                                Log.w("busqueda_usuarios", "Error getting documents: ", exception)
-                            }.addOnCompleteListener {
-                                Log.w("busqueda_usuarios", "consulta realizada bien")
-                                softwareKeyboardController?.hide()
-                            }.addOnCanceledListener {
-                                Log.w("busqueda_usuarios", "consulta cancelada")
-                                resultBusqueda.clear()
-                            }
 
-                        } catch (exception: Exception) {
-                            Log.w("busqueda_equipos", "Error: ", exception)
+                            } catch (exception: Exception) {
+                                Log.w("busqueda_nombre", "Error: ", exception)
+                            }
+                        } else{
+                            val textoBuscarConsulta = textoBuscar.substring(1,textoBuscar.length)
+                            try{
+                                equiposRef.get().addOnSuccessListener { result ->
+                                    for (document in result) {
+                                        val idDocumento = document.id
+                                        if (idDocumento.startsWith(textoBuscarConsulta)) {
+                                            val codigoE = document.getString("codigo") ?: ""
+                                            val nombre = document.getString("equipo") ?: ""
+                                            val creadorId = document.getString("creador") ?: ""
+
+                                            usersRef.document(creadorId).get()
+                                                .addOnSuccessListener { d ->
+                                                    if (d != null) {
+                                                        Log.d("busqueda_equipos_id", "DocumentSnapshot data: ${d.data}")
+                                                        val creadorNombre = d.getString("username") ?: ""
+                                                        val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
+                                                        resultBusqueda.add(equipo)
+                                                    } else {
+                                                        Log.d("busqueda_equipos_id", "No such document")
+                                                    }
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Log.d("busqueda_equipos_id", "get failed with ", exception)
+                                                }
+                                                .addOnCompleteListener { task ->
+                                                    if (task.isSuccessful) {
+                                                        Log.d("busqueda_equipos_id", "Query completed successfully")
+                                                    }
+                                                }
+                                                .addOnCanceledListener {
+                                                    Log.d("busqueda_equipos_id", "Query was cancelled")
+                                                }
+                                        }
+                                    }
+                                }.addOnFailureListener { exception ->
+                                    Log.w("busqueda_equipos_id", "Error getting documents: ", exception)
+                                }.addOnCompleteListener {
+                                    Log.w("busqueda_equipos_id", "consulta realizada bien")
+                                    softwareKeyboardController?.hide()
+                                }.addOnCanceledListener {
+                                    Log.w("busqueda_equipos_id", "consulta cancelada")
+                                    resultBusqueda.clear()
+                                }
+
+                                competicionesRef.get().addOnSuccessListener { result ->
+                                    for (document in result) {
+                                        val idDocumento = document.id
+                                        if (idDocumento.startsWith(textoBuscarConsulta)) {
+                                            val codigoE = document.getString("codigo") ?: ""
+                                            val nombre = document.getString("competicion") ?: ""
+                                            val creadorId = document.getString("creador") ?: ""
+
+                                            usersRef.document(creadorId).get()
+                                                .addOnSuccessListener { d ->
+                                                    if (d != null) {
+                                                        Log.d("busqueda_competiciones_id", "DocumentSnapshot data: ${d.data}")
+                                                        val creadorNombre = d.getString("username") ?: ""
+                                                        val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competicion")
+                                                        resultBusqueda.add(equipo)
+                                                    } else {
+                                                        Log.d("busqueda_competiciones_id", "No such document")
+                                                    }
+                                                }
+                                                .addOnFailureListener { exception ->
+                                                    Log.d("busqueda_competiciones_id", "get failed with ", exception)
+                                                }
+                                                .addOnCompleteListener { task ->
+                                                    if (task.isSuccessful) {
+                                                        Log.d("busqueda_competiciones_id", "Query completed successfully")
+                                                    }
+                                                }
+                                                .addOnCanceledListener {
+                                                    Log.d("busqueda_competiciones_id", "Query was cancelled")
+                                                }
+                                        }
+                                    }
+                                }.addOnFailureListener { exception ->
+                                    Log.w("busqueda_competiciones_id", "Error getting documents: ", exception)
+                                }.addOnCompleteListener {
+                                    Log.w("busqueda_competiciones_id", "consulta realizada bien")
+                                    softwareKeyboardController?.hide()
+                                }.addOnCanceledListener {
+                                    Log.w("busqueda_competiciones_id", "consulta cancelada")
+                                    resultBusqueda.clear()
+                                }
+                            } catch (exception: Exception) {
+                                Log.w("busqueda_id", "Error: ", exception)
+                            }
                         }
                         isLoading.value = false
                     }
