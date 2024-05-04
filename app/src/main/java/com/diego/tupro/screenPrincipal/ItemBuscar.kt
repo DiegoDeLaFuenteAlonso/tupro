@@ -2,18 +2,14 @@ package com.diego.tupro.screenPrincipal
 
 import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
@@ -21,9 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -43,7 +37,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.diego.tupro.Constantes
 import com.google.firebase.firestore.FirebaseFirestore
-import java.util.Locale
 
 
 @Composable
@@ -71,7 +64,10 @@ fun BodyContentBuscar(
     val resultBusqueda = remember { mutableStateListOf<ItemBusqueda>() }
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
     val db = FirebaseFirestore.getInstance()
-    val isLoading = remember { mutableStateOf(false) }
+    val consultasNombre = remember { mutableStateListOf(1,2,3) }
+    val consultasID = remember { mutableStateListOf(1,2) }
+    val numeroConsultasNombre = 3
+    val numeroConsultasID = 2
 
     Column(
         modifier = Modifier
@@ -96,7 +92,8 @@ fun BodyContentBuscar(
                 onClick = {
                     textoBuscar = textoBuscar.trim()
                     if(textoBuscar.isNotEmpty()){
-                        isLoading.value = true
+                        consultasNombre.clear()
+                        consultasID.clear()
                         val equiposRef = db.collection("equipos")
                         val competicionesRef = db.collection("competiciones")
                         val usersRef = db.collection("users")
@@ -157,6 +154,7 @@ fun BodyContentBuscar(
                                 }.addOnCompleteListener {
                                     Log.w("busqueda_equipos", "consulta realizada bien")
                                     softwareKeyboardController?.hide()
+                                    consultasNombre.add(1)
                                 }.addOnCanceledListener {
                                     Log.w("busqueda_equipos", "consulta cancelada")
                                     resultBusqueda.clear()
@@ -196,14 +194,11 @@ fun BodyContentBuscar(
                                     }
                                     Log.w("busqueda_competiciones", "Acaba consulta, $textoBuscar")
                                 }.addOnFailureListener { exception ->
-                                    Log.w(
-                                        "busqueda_competiciones",
-                                        "Error getting documents: ",
-                                        exception
-                                    )
+                                    Log.w("busqueda_competiciones", "Error getting documents: ", exception)
                                 }.addOnCompleteListener {
                                     Log.w("busqueda_competiciones", "consulta realizada bien")
                                     softwareKeyboardController?.hide()
+                                    consultasNombre.add(2)
                                 }.addOnCanceledListener {
                                     Log.w("busqueda_competiciones", "consulta cancelada")
                                     resultBusqueda.clear()
@@ -223,6 +218,7 @@ fun BodyContentBuscar(
                                 }.addOnCompleteListener {
                                     Log.w("busqueda_usuarios", "consulta realizada bien")
                                     softwareKeyboardController?.hide()
+                                    consultasNombre.add(3)
                                 }.addOnCanceledListener {
                                     Log.w("busqueda_usuarios", "consulta cancelada")
                                     resultBusqueda.clear()
@@ -271,6 +267,7 @@ fun BodyContentBuscar(
                                 }.addOnCompleteListener {
                                     Log.w("busqueda_equipos_id", "consulta realizada bien")
                                     softwareKeyboardController?.hide()
+                                    consultasID.add(1)
                                 }.addOnCanceledListener {
                                     Log.w("busqueda_equipos_id", "consulta cancelada")
                                     resultBusqueda.clear()
@@ -313,6 +310,7 @@ fun BodyContentBuscar(
                                 }.addOnCompleteListener {
                                     Log.w("busqueda_competiciones_id", "consulta realizada bien")
                                     softwareKeyboardController?.hide()
+                                    consultasID.add(2)
                                 }.addOnCanceledListener {
                                     Log.w("busqueda_competiciones_id", "consulta cancelada")
                                     resultBusqueda.clear()
@@ -321,7 +319,6 @@ fun BodyContentBuscar(
                                 Log.w("busqueda_id", "Error: ", exception)
                             }
                         }
-                        isLoading.value = false
                     }
                 },
                 modifier = Modifier
@@ -343,7 +340,7 @@ fun BodyContentBuscar(
                 .weight(0.9f)
                 .fillMaxWidth()
         ) {
-            if(isLoading.value){
+            if(consultasNombre.size < numeroConsultasNombre && consultasID.size < numeroConsultasID){
                 Box (
                     modifier = Modifier
                         .fillMaxSize(),
@@ -367,44 +364,7 @@ fun BodyContentBuscar(
                     )
                 }
             } else{
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    items(resultBusqueda) {
-                        val esUser = it.tipo == "Usuario"
-                        ListItem(
-                            leadingContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.2f)
-                                        .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(Constantes.redondeoBoton))
-                                        .background(MaterialTheme.colorScheme.secondaryContainer),
-                                    contentAlignment = Alignment.Center
-
-                                ) {
-                                    Text(
-                                        it.codigo.uppercase(Locale.ROOT),
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                        fontSize = 20.sp
-                                    )
-                                }
-                            },
-                            headlineContent = { Text(it.nombre) },
-                            supportingContent = { if(!esUser) Text("#" + it.idDocumento) },
-                            trailingContent = { if(!esUser) Text(it.tipo + ": " + it.creador) else Text(it.tipo)},
-                            modifier = Modifier
-                                .clickable {
-
-                                }
-                        )
-                        HorizontalDivider(
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-                        )
-                    }
-                }
+                DibujarColumnaItems(resultBusqueda, navController)
             }
         }
     }

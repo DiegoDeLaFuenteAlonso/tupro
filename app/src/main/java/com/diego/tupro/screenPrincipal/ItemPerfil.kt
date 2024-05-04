@@ -548,13 +548,14 @@ fun BodyContentPerfil(
                         val listaEquipos = remember { mutableStateListOf<Equipo>() }
 
                         // Crear un estado mutable para el estado de carga
-                        val isLoading = remember { mutableStateOf(true) }
+                        val consultasEquipos = remember { mutableStateListOf(1) }
+                        val numeroConsultasEquipos = 1
 
                         LaunchedEffect(key1 = user) {
                             db.collection("equipos")
                                 .whereEqualTo("creador", user.uid)
                                 .addSnapshotListener { snapshot, e ->
-                                    isLoading.value = true
+                                    consultasEquipos.clear()
                                     //listaEquipos.clear()
                                     if (e != null) {
                                         Log.w("disparadon_consulta_equipos", "El disparador ha fallado, ", e)
@@ -573,27 +574,21 @@ fun BodyContentPerfil(
                                                 .get()
                                                 .addOnSuccessListener { userDocument ->
                                                     val username = userDocument.getString("username") ?: ""
-                                                    listaEquipos.add(
-                                                        Equipo(
-                                                            codigo,
-                                                            equipo,
-                                                            idDocumento,
-                                                            username
-                                                        )
-                                                    )
+                                                    listaEquipos.add(Equipo(codigo, equipo, idDocumento, username))
                                                 }
                                                 .addOnFailureListener { exception ->
                                                     Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
+                                                }
+                                                .addOnCompleteListener{
+                                                    consultasEquipos.add(1)
                                                 }
                                         }
                                     } else {
                                         Log.d("disparadon_consulta_equipos", "Current data: null")
                                     }
-                                    // Actualizar el estado de carga cuando la consulta haya terminado
-                                    isLoading.value = false
                                 }
                         }
-                        if (isLoading.value) {
+                        if (consultasEquipos.size < numeroConsultasEquipos) {
                             // Mostrar un indicador de carga mientras la consulta está en progreso
                             Box (
                                 modifier = Modifier
@@ -676,13 +671,14 @@ fun BodyContentPerfil(
                 else if(index == 1){
                     if (user != null) {
                         val listaComp = remember { mutableStateListOf<Comp>() }
-                        val isLoading = remember { mutableStateOf(true) }
+                        val consultasComp = remember { mutableStateListOf(1) }
+                        val numeroConsultasComp = 1
 
                         LaunchedEffect(key1 = user) {
                             db.collection("competiciones")
                                 .whereEqualTo("creador", user.uid)
                                 .addSnapshotListener { snapshot, e ->
-                                    isLoading.value = true
+                                    consultasComp.clear()
                                     listaComp.clear()
                                     if (e != null) {
                                         Log.w("disparador_consulta_equipos", "El disparador ha fallado, ", e)
@@ -727,27 +723,21 @@ fun BodyContentPerfil(
                                                 .get()
                                                 .addOnSuccessListener { userDocument ->
                                                     val username = userDocument.getString("username") ?: ""
-                                                    listaComp.add(
-                                                        Comp(
-                                                            codigo,
-                                                            comp,
-                                                            idDocumento,
-                                                            username
-                                                        )
-                                                    )
+                                                    listaComp.add(Comp(codigo, comp, idDocumento, username))
                                                 }
                                                 .addOnFailureListener { exception ->
                                                     Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
+                                                }
+                                                .addOnCompleteListener{
+                                                    consultasComp.add(1)
                                                 }
                                         }
                                     } else {
                                         Log.d("disparadon_consulta_equipos", "Current data: null")
                                     }
-                                    // Actualizar el estado de carga cuando la consulta haya terminado
-                                    isLoading.value = false
                                 }
                         }
-                        if (isLoading.value) {
+                        if (consultasComp.size < numeroConsultasComp) {
                             // Mostrar un indicador de carga mientras la consulta está en progreso
                             Box (
                                 modifier = Modifier
