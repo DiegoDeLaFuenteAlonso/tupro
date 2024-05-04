@@ -1,7 +1,17 @@
 package com.diego.tupro.screenPrincipal
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
@@ -33,6 +43,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import androidx.compose.material.icons.filled.SavedSearch
+import androidx.compose.material3.ListItem
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import com.diego.tupro.Constantes
+import java.util.Locale
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -66,7 +83,47 @@ fun BarraSuperior(titulo: String) {
         HorizontalDivider(thickness = 1.dp)
     }
 }
+@Composable
+fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navController: NavController) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        items(resultBusqueda) {
+            val esUser = it.tipo == "Usuario"
+            ListItem(
+                leadingContent = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.2f)
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(Constantes.redondeoBoton))
+                            .background(colorScheme.secondaryContainer),
+                        contentAlignment = Alignment.Center
 
+                    ) {
+                        Text(
+                            it.codigo.uppercase(Locale.ROOT),
+                            color = colorScheme.onSecondaryContainer,
+                            fontSize = 20.sp
+                        )
+                    }
+                },
+                headlineContent = { Text(it.nombre) },
+                supportingContent = { if(!esUser) Text("#" + it.idDocumento) },
+                trailingContent = { if(!esUser) Text(it.tipo + ": " + it.creador) else Text(it.tipo)},
+                modifier = Modifier
+                    .clickable {
+
+                    }
+            )
+            HorizontalDivider(
+                thickness = 1.dp,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+            )
+        }
+    }
+}
 
 @Composable
 fun BarraInferior(navController: NavController, i: Int) {
