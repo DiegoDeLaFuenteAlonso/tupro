@@ -54,7 +54,6 @@ import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.Equipo
-import com.diego.tupro.screenPrincipal.ItemBusqueda
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase

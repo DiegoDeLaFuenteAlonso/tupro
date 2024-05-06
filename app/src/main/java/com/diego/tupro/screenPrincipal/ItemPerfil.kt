@@ -57,6 +57,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +85,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.util.Locale
@@ -110,6 +112,10 @@ fun EstructuraItemPerfil(navController: NavController) {
     val selecEquipos = remember { mutableStateListOf<Equipo>() }
     val selecComp = remember { mutableStateListOf<Comp>() }
     var showDialogEliminar by remember { mutableStateOf(false) }
+    val aportaciones = remember { mutableIntStateOf(0) }
+    contarAportaciones().addOnSuccessListener { count ->
+        aportaciones.intValue = count
+    }
 
     Scaffold(
         topBar = {
@@ -222,35 +228,33 @@ fun EstructuraItemPerfil(navController: NavController) {
                         }
                     )
                     HorizontalDivider(thickness = 1.dp)
-                    Row {
+                    Row(
+                        modifier = Modifier
+                            .padding(
+                                top = 10.dp,
+                                bottom = 12.dp,
+                                start = 10.dp,
+                                end = 10.dp
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .background(colorScheme.background),
+                                .fillMaxWidth(0.2f)
+                                .aspectRatio(1f)
+                                .clip(RoundedCornerShape(Constantes.redondeoBoton))
+                                .background(colorScheme.secondaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
-                            // El usuario ha iniciado sesión
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(all = 20.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(start = 16.dp, top = 8.dp, bottom = 8.dp)
-                                        .background(
-                                            color = colorScheme.secondaryContainer,
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                ) {
-                                    Text(
-                                        text = "\tCorreo: $correo",
-                                        color = colorScheme.onSecondaryContainer,
-                                        fontSize = 18.sp
-                                    )
-                                }
+                            if (usuario != null) {
+                                Text(
+                                    text = usuario.substring(0, 1),
+                                    color = colorScheme.onSecondaryContainer,
+                                    fontSize = 26.sp
+                                )
                             }
                         }
+                        Text(text = "Aportaciones: ${aportaciones.intValue}", fontSize = 22.sp, modifier = Modifier.padding(start = 20.dp))
                     }
                 } else {
                     BarraSuperior("")
@@ -285,20 +289,6 @@ fun EstructuraItemPerfil(navController: NavController) {
                                             textAlign = TextAlign.Center
                                         )
                                     }
-                                    /*
-                                    ElevatedButton(
-                                        onClick = { /*TODO*/ },
-                                        Modifier
-                                            .weight(1f)
-                                            .padding(
-                                                start = paddingBotones,
-                                                end = paddingBotones,
-                                                top = paddingBotones
-                                            ),
-                                        shape = RoundedCornerShape(Constantes.redondeoBoton)
-                                    ) {
-                                        Text(text = "Google", textAlign = TextAlign.Center)
-                                    }*/
                                 }
                             }
                         }
@@ -344,7 +334,7 @@ fun EstructuraItemPerfil(navController: NavController) {
         bottomBar = { BarraInferior(navController = navController, 2) }
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, selecComp)
+        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, selecComp, navController)
 
         val sheetState = rememberModalBottomSheetState()
 
@@ -455,6 +445,26 @@ fun eliminarCuenta(navController: NavController, context: Context) {
         }
 }
 
+fun contarAportaciones(): Task<Int> {
+    val auth = FirebaseAuth.getInstance()
+    val db = FirebaseFirestore.getInstance()
+
+    val equiposRef = db.collection("equipos")
+    val competicionesRef = db.collection("competiciones")
+
+    val equiposTask = equiposRef.whereEqualTo("creador", auth.uid).get()
+    val competicionesTask = competicionesRef.whereEqualTo("creador", auth.uid).get()
+
+    return Tasks.whenAllSuccess<QuerySnapshot>(equiposTask, competicionesTask).continueWith { tasks ->
+        var count = 0
+        for (task in tasks.result!!) {
+            count += task.size()
+        }
+        count
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun BodyContentPerfil(
@@ -462,7 +472,8 @@ fun BodyContentPerfil(
     sessionManager: SessionManager,
     selecEquipos: SnapshotStateList<Equipo>,
     modoEdicion: MutableState<Boolean>,
-    selecComp: SnapshotStateList<Comp>
+    selecComp: SnapshotStateList<Comp>,
+    navController: NavController
 ) {
     val auth = Firebase.auth
     val currentUser = auth.currentUser
@@ -486,7 +497,7 @@ fun BodyContentPerfil(
         }
     } else {
         // El usuario está registrado
-        var selectedTabIndex by remember { mutableStateOf(0) }
+        var selectedTabIndex by remember { mutableIntStateOf(0) }
         val tabItems = listOf(
             TabItem("Equipos", Icons.Filled.Shield, Icons.Outlined.Shield),
             TabItem("Competiciones", Icons.Filled.Groups, Icons.Outlined.Groups)
@@ -632,8 +643,7 @@ fun BodyContentPerfil(
                                                 Text(
                                                     equipo.codigo.uppercase(Locale.ROOT),
                                                     color = if (seleccionado) colorScheme.onTertiaryContainer else colorScheme.onSecondaryContainer,
-                                                    fontSize = 20.sp,
-                                                    //fontWeight = FontWeight.Bold,
+                                                    fontSize = 20.sp
                                                 )
                                             }
                                         },
@@ -651,7 +661,7 @@ fun BodyContentPerfil(
                                                     } else {
                                                         selecEquipos.add(equipo)
                                                     }
-                                                }
+                                                } else {navController.navigate("screen_equipo/${equipo.codigo}/${equipo.creador}/${equipo.equipo}/${equipo.idDocumento}")}
                                             },
                                             onLongClick = {
                                                 modoEdicion.value = true
@@ -799,7 +809,7 @@ fun BodyContentPerfil(
                                                     } else {
                                                         selecComp.add(comp)
                                                     }
-                                                }
+                                                } else {navController.navigate("screen_competicion")}
                                             },
                                             onLongClick = {
                                                 modoEdicion.value = true
