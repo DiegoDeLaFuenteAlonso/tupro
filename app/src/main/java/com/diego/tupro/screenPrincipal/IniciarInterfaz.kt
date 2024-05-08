@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import com.diego.tupro.Constantes
+import com.google.firebase.auth.FirebaseAuth
 import java.util.Locale
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -114,7 +115,16 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
                 trailingContent = { if(!esUser) Text(it.tipo + ": " + it.creador) else Text(it.tipo)},
                 modifier = Modifier
                     .clickable {
-
+                        if (it.tipo == "Equipo") navController.navigate("screen_equipo/${it.codigo}/${it.creador}/${it.nombre}/${it.idDocumento}")
+                        else if (it.tipo == "Competicion") navController.navigate("screen_competicion")
+                        else if (it.tipo == "Usuario") {
+                            val auth = FirebaseAuth.getInstance()
+                            val uid = auth.currentUser?.uid
+                            if (uid != null){
+                                if (uid != it.idDocumento) navController.navigate("screen_perfil/${it.nombre}/${it.idDocumento}")
+                                else navController.navigate("item_perfil")
+                            }
+                        }
                     }
             )
             HorizontalDivider(

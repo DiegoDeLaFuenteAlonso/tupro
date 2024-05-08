@@ -1,6 +1,5 @@
 package com.diego.tupro.screenPrincipal
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,21 +21,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.diego.tupro.Constantes
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 
 @Composable
@@ -62,12 +65,26 @@ fun BodyContentBuscar(
 ) {
     var textoBuscar by remember { mutableStateOf("") }
     val resultBusqueda = remember { mutableStateListOf<ItemBusqueda>() }
-    val softwareKeyboardController = LocalSoftwareKeyboardController.current
-    val db = FirebaseFirestore.getInstance()
-    val consultasNombre = remember { mutableStateListOf(1,2,3) }
-    val consultasID = remember { mutableStateListOf(1,2) }
-    val numeroConsultasNombre = 3
-    val numeroConsultasID = 2
+
+    val isLoading = remember { mutableStateOf(false) }
+    val realizarConsulta = remember { mutableStateOf(false) }
+    LaunchedEffect(realizarConsulta.value) {
+        isLoading.value = true
+        textoBuscar = textoBuscar.trim()
+        if (realizarConsulta.value && textoBuscar.isNotEmpty()) {
+            resultBusqueda.clear()
+            if(!textoBuscar.startsWith("#")){
+                resultBusqueda.addAll(getEquiposBuscar(textoBuscar))
+                resultBusqueda.addAll(getCompeticionesBuscar(textoBuscar))
+                resultBusqueda.addAll(getUsuariosBuscar(textoBuscar))
+            } else{
+                resultBusqueda.addAll(getEquiposPorIdBuscar(textoBuscar.substring(1, textoBuscar.length)))
+                resultBusqueda.addAll(getCompeticionesPorIdBuscar(textoBuscar.substring(1, textoBuscar.length)))
+            }
+        }
+        realizarConsulta.value = false
+        isLoading.value = false
+    }
 
     Column(
         modifier = Modifier
@@ -92,233 +109,7 @@ fun BodyContentBuscar(
                 onClick = {
                     textoBuscar = textoBuscar.trim()
                     if(textoBuscar.isNotEmpty()){
-                        consultasNombre.clear()
-                        consultasID.clear()
-                        val equiposRef = db.collection("equipos")
-                        val competicionesRef = db.collection("competiciones")
-                        val usersRef = db.collection("users")
-
-                        if(!textoBuscar.startsWith("#")) {
-                            val queryEquipos = equiposRef
-                                .orderBy("nombreBusqueda")
-                                .startAt(textoBuscar.uppercase())
-                                .endAt(textoBuscar.uppercase() + '\uf8ff')
-
-                            val queryCompeticiones = competicionesRef
-                                .orderBy("nombreBusqueda")
-                                .startAt(textoBuscar.uppercase())
-                                .endAt(textoBuscar.uppercase() + '\uf8ff')
-
-                            val queryUsers = usersRef
-                                .orderBy("usernameBusqueda")
-                                .startAt(textoBuscar.uppercase())
-                                .endAt(textoBuscar.uppercase() + '\uf8ff')
-
-                            try {
-                                queryEquipos.get().addOnSuccessListener { result ->
-                                    Log.w("busqueda_equipos", "Empieza consulta, $textoBuscar")
-                                    resultBusqueda.clear()
-                                    for (document in result) {
-                                        val codigoE = document.getString("codigo") ?: ""
-                                        val nombre = document.getString("equipo") ?: ""
-                                        val idDocumento = document.id
-                                        val creadorId = document.getString("creador") ?: ""
-
-                                        usersRef.document(creadorId).get()
-                                            .addOnSuccessListener { d ->
-                                                if (d != null) {
-                                                    Log.d("busqueda_equipos", "DocumentSnapshot data: ${d.data}")
-                                                    val creadorNombre = d.getString("username") ?: ""
-                                                    val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
-                                                    resultBusqueda.add(equipo)
-                                                } else {
-                                                    Log.d("busqueda_equipos", "No such document")
-                                                }
-                                            }
-                                            .addOnFailureListener { exception ->
-                                                Log.d("busqueda_equipos", "get failed with ", exception)
-                                            }
-                                            .addOnCompleteListener { task ->
-                                                if (task.isSuccessful) {
-                                                    Log.d("busqueda_equipos", "Query completed successfully")
-                                                }
-                                            }
-                                            .addOnCanceledListener {
-                                                Log.d("busqueda_equipos", "Query was cancelled")
-                                            }
-                                    }
-                                    Log.w("busqueda_equipos", "Acaba consulta, $textoBuscar")
-                                }.addOnFailureListener { exception ->
-                                    Log.w("busqueda_equipos", "Error getting documents: ", exception
-                                    )
-                                }.addOnCompleteListener {
-                                    Log.w("busqueda_equipos", "consulta realizada bien")
-                                    softwareKeyboardController?.hide()
-                                    consultasNombre.add(1)
-                                }.addOnCanceledListener {
-                                    Log.w("busqueda_equipos", "consulta cancelada")
-                                    resultBusqueda.clear()
-                                }
-
-                                queryCompeticiones.get().addOnSuccessListener { result ->
-                                    Log.w("busqueda_competiciones", "Empieza consulta, $textoBuscar")
-                                    for (document in result) {
-                                        val codigoE = document.getString("codigo") ?: ""
-                                        val nombre = document.getString("competicion") ?: ""
-                                        val idDocumento = document.id
-                                        val creadorId = document.getString("creador") ?: ""
-
-                                        usersRef.document(creadorId).get()
-                                            .addOnSuccessListener { d ->
-                                                if (d != null) {
-                                                    Log.d("busqueda_competiciones", "DocumentSnapshot data: ${d.data}")
-                                                    val creadorNombre =
-                                                        d.getString("username") ?: ""
-                                                    val comp = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competición")
-                                                    resultBusqueda.add(comp)
-                                                } else {
-                                                    Log.d("busqueda_competiciones", "No such document")
-                                                }
-                                            }
-                                            .addOnFailureListener { exception ->
-                                                Log.d("busqueda_competiciones", "get failed with ", exception)
-                                            }
-                                            .addOnCompleteListener { task ->
-                                                if (task.isSuccessful) {
-                                                    Log.d("busqueda_competiciones", "Query completed successfully")
-                                                }
-                                            }
-                                            .addOnCanceledListener {
-                                                Log.d("busqueda_competiciones", "Query was cancelled")
-                                            }
-                                    }
-                                    Log.w("busqueda_competiciones", "Acaba consulta, $textoBuscar")
-                                }.addOnFailureListener { exception ->
-                                    Log.w("busqueda_competiciones", "Error getting documents: ", exception)
-                                }.addOnCompleteListener {
-                                    Log.w("busqueda_competiciones", "consulta realizada bien")
-                                    softwareKeyboardController?.hide()
-                                    consultasNombre.add(2)
-                                }.addOnCanceledListener {
-                                    Log.w("busqueda_competiciones", "consulta cancelada")
-                                    resultBusqueda.clear()
-                                }
-
-                                queryUsers.get().addOnSuccessListener { result ->
-                                    Log.w("busqueda_usuarios", "Empieza consulta, $textoBuscar")
-                                    for (document in result) {
-                                        val nombre = document.getString("username") ?: ""
-                                        val codigo = nombre.uppercase().substring(0, 1)
-                                        val idDocumento = document.id
-                                        resultBusqueda.add(ItemBusqueda(codigo, nombre, idDocumento, "", "Usuario"))
-                                    }
-                                    Log.w("busqueda_usuarios", "Acaba consulta, $textoBuscar")
-                                }.addOnFailureListener { exception ->
-                                    Log.w("busqueda_usuarios", "Error getting documents: ", exception)
-                                }.addOnCompleteListener {
-                                    Log.w("busqueda_usuarios", "consulta realizada bien")
-                                    softwareKeyboardController?.hide()
-                                    consultasNombre.add(3)
-                                }.addOnCanceledListener {
-                                    Log.w("busqueda_usuarios", "consulta cancelada")
-                                    resultBusqueda.clear()
-                                }
-
-                            } catch (exception: Exception) {
-                                Log.w("busqueda_nombre", "Error: ", exception)
-                            }
-                        } else{
-                            val textoBuscarConsulta = textoBuscar.substring(1,textoBuscar.length)
-                            try{
-                                equiposRef.get().addOnSuccessListener { result ->
-                                    for (document in result) {
-                                        val idDocumento = document.id
-                                        if (idDocumento.startsWith(textoBuscarConsulta)) {
-                                            val codigoE = document.getString("codigo") ?: ""
-                                            val nombre = document.getString("equipo") ?: ""
-                                            val creadorId = document.getString("creador") ?: ""
-
-                                            usersRef.document(creadorId).get()
-                                                .addOnSuccessListener { d ->
-                                                    if (d != null) {
-                                                        Log.d("busqueda_equipos_id", "DocumentSnapshot data: ${d.data}")
-                                                        val creadorNombre = d.getString("username") ?: ""
-                                                        val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
-                                                        resultBusqueda.add(equipo)
-                                                    } else {
-                                                        Log.d("busqueda_equipos_id", "No such document")
-                                                    }
-                                                }
-                                                .addOnFailureListener { exception ->
-                                                    Log.d("busqueda_equipos_id", "get failed with ", exception)
-                                                }
-                                                .addOnCompleteListener { task ->
-                                                    if (task.isSuccessful) {
-                                                        Log.d("busqueda_equipos_id", "Query completed successfully")
-                                                    }
-                                                }
-                                                .addOnCanceledListener {
-                                                    Log.d("busqueda_equipos_id", "Query was cancelled")
-                                                }
-                                        }
-                                    }
-                                }.addOnFailureListener { exception ->
-                                    Log.w("busqueda_equipos_id", "Error getting documents: ", exception)
-                                }.addOnCompleteListener {
-                                    Log.w("busqueda_equipos_id", "consulta realizada bien")
-                                    softwareKeyboardController?.hide()
-                                    consultasID.add(1)
-                                }.addOnCanceledListener {
-                                    Log.w("busqueda_equipos_id", "consulta cancelada")
-                                    resultBusqueda.clear()
-                                }
-
-                                competicionesRef.get().addOnSuccessListener { result ->
-                                    for (document in result) {
-                                        val idDocumento = document.id
-                                        if (idDocumento.startsWith(textoBuscarConsulta)) {
-                                            val codigoE = document.getString("codigo") ?: ""
-                                            val nombre = document.getString("competicion") ?: ""
-                                            val creadorId = document.getString("creador") ?: ""
-
-                                            usersRef.document(creadorId).get()
-                                                .addOnSuccessListener { d ->
-                                                    if (d != null) {
-                                                        Log.d("busqueda_competiciones_id", "DocumentSnapshot data: ${d.data}")
-                                                        val creadorNombre = d.getString("username") ?: ""
-                                                        val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competicion")
-                                                        resultBusqueda.add(equipo)
-                                                    } else {
-                                                        Log.d("busqueda_competiciones_id", "No such document")
-                                                    }
-                                                }
-                                                .addOnFailureListener { exception ->
-                                                    Log.d("busqueda_competiciones_id", "get failed with ", exception)
-                                                }
-                                                .addOnCompleteListener { task ->
-                                                    if (task.isSuccessful) {
-                                                        Log.d("busqueda_competiciones_id", "Query completed successfully")
-                                                    }
-                                                }
-                                                .addOnCanceledListener {
-                                                    Log.d("busqueda_competiciones_id", "Query was cancelled")
-                                                }
-                                        }
-                                    }
-                                }.addOnFailureListener { exception ->
-                                    Log.w("busqueda_competiciones_id", "Error getting documents: ", exception)
-                                }.addOnCompleteListener {
-                                    Log.w("busqueda_competiciones_id", "consulta realizada bien")
-                                    softwareKeyboardController?.hide()
-                                    consultasID.add(2)
-                                }.addOnCanceledListener {
-                                    Log.w("busqueda_competiciones_id", "consulta cancelada")
-                                    resultBusqueda.clear()
-                                }
-                            } catch (exception: Exception) {
-                                Log.w("busqueda_id", "Error: ", exception)
-                            }
-                        }
+                        realizarConsulta.value = true
                     }
                 },
                 modifier = Modifier
@@ -340,7 +131,7 @@ fun BodyContentBuscar(
                 .weight(0.9f)
                 .fillMaxWidth()
         ) {
-            if(consultasNombre.size < numeroConsultasNombre && consultasID.size < numeroConsultasID){
+            if(isLoading.value){
                 Box (
                     modifier = Modifier
                         .fillMaxSize(),
@@ -367,6 +158,145 @@ fun BodyContentBuscar(
                 DibujarColumnaItems(resultBusqueda, navController)
             }
         }
+    }
+}
+
+suspend fun getEquiposBuscar(textoBuscar: String): SnapshotStateList<ItemBusqueda> {
+    return withContext(Dispatchers.IO) {
+        val db = FirebaseFirestore.getInstance()
+        val equipos = mutableStateListOf<ItemBusqueda>()
+
+        val querySnapshotEquipos = db.collection("equipos")
+            .orderBy("nombreBusqueda")
+            .startAt(textoBuscar.uppercase())
+            .endAt(textoBuscar.uppercase() + '\uf8ff')
+            .get()
+            .await()
+
+        for (document in querySnapshotEquipos.documents) {
+            val codigoE = document.getString("codigo") ?: ""
+            val nombre = document.getString("equipo") ?: ""
+            val idDocumento = document.id
+            val creadorId = document.getString("creador") ?: ""
+
+            val userDocument = db.collection("users").document(creadorId).get().await()
+            val creadorNombre = userDocument.getString("username") ?: ""
+
+            val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
+            equipos.add(equipo)
+        }
+
+        equipos
+    }
+}
+
+suspend fun getCompeticionesBuscar(textoBuscar: String): SnapshotStateList<ItemBusqueda> {
+    return withContext(Dispatchers.IO) {
+        val db = FirebaseFirestore.getInstance()
+        val competiciones = mutableStateListOf<ItemBusqueda>()
+
+        val querySnapshotCompeticiones = db.collection("competiciones")
+            .orderBy("nombreBusqueda")
+            .startAt(textoBuscar.uppercase())
+            .endAt(textoBuscar.uppercase() + '\uf8ff')
+            .get()
+            .await()
+
+        for (document in querySnapshotCompeticiones.documents) {
+            val codigoE = document.getString("codigo") ?: ""
+            val nombre = document.getString("competicion") ?: ""
+            val idDocumento = document.id
+            val creadorId = document.getString("creador") ?: ""
+
+            val userDocument = db.collection("users").document(creadorId).get().await()
+            val creadorNombre = userDocument.getString("username") ?: ""
+
+            val comp = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competicion")
+            competiciones.add(comp)
+        }
+
+        competiciones
+    }
+}
+
+suspend fun getUsuariosBuscar(textoBuscar: String): SnapshotStateList<ItemBusqueda> {
+    return withContext(Dispatchers.IO) {
+        val db = FirebaseFirestore.getInstance()
+        val usuarios = mutableStateListOf<ItemBusqueda>()
+
+        val querySnapshotUsuarios = db.collection("users")
+            .orderBy("usernameBusqueda")
+            .startAt(textoBuscar.uppercase())
+            .endAt(textoBuscar.uppercase() + '\uf8ff')
+            .get()
+            .await()
+
+        for (document in querySnapshotUsuarios.documents) {
+            val nombre = document.getString("username") ?: ""
+            val codigo = nombre.uppercase().substring(0, 1)
+            val idDocumento = document.id
+
+            val usuario = ItemBusqueda(codigo, nombre, idDocumento, "", "Usuario")
+            usuarios.add(usuario)
+        }
+
+        usuarios
+    }
+}
+
+suspend fun getEquiposPorIdBuscar(textoBuscar: String): SnapshotStateList<ItemBusqueda> {
+    return withContext(Dispatchers.IO) {
+        val db = FirebaseFirestore.getInstance()
+        val equipos = mutableStateListOf<ItemBusqueda>()
+
+        val querySnapshotEquipos = db.collection("equipos")
+            .get()
+            .await()
+
+        for (document in querySnapshotEquipos.documents) {
+            val idDocumento = document.id
+            if (idDocumento.startsWith(textoBuscar)) {
+                val codigoE = document.getString("codigo") ?: ""
+                val nombre = document.getString("equipo") ?: ""
+                val creadorId = document.getString("creador") ?: ""
+
+                val userDocument = db.collection("users").document(creadorId).get().await()
+                val creadorNombre = userDocument.getString("username") ?: ""
+
+                val equipo = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Equipo")
+                equipos.add(equipo)
+            }
+        }
+
+        equipos
+    }
+}
+
+suspend fun getCompeticionesPorIdBuscar(textoBuscar: String): SnapshotStateList<ItemBusqueda> {
+    return withContext(Dispatchers.IO) {
+        val db = FirebaseFirestore.getInstance()
+        val competiciones = mutableStateListOf<ItemBusqueda>()
+
+        val querySnapshotCompeticiones = db.collection("competiciones")
+            .get()
+            .await()
+
+        for (document in querySnapshotCompeticiones.documents) {
+            val idDocumento = document.id
+            if (idDocumento.startsWith(textoBuscar)) {
+                val codigoE = document.getString("codigo") ?: ""
+                val nombre = document.getString("competicion") ?: ""
+                val creadorId = document.getString("creador") ?: ""
+
+                val userDocument = db.collection("users").document(creadorId).get().await()
+                val creadorNombre = userDocument.getString("username") ?: ""
+
+                val competicion = ItemBusqueda(codigoE, nombre, idDocumento, creadorNombre, "Competicion")
+                competiciones.add(competicion)
+            }
+        }
+
+        competiciones
     }
 }
 
