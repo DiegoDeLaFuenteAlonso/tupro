@@ -14,6 +14,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Home
@@ -137,14 +139,10 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
 
 @Composable
 fun BarraInferior(navController: NavController, i: Int) {
-
-    /* BackHandler {
-        // Cierra la aplicación
-        exitProcess(0)
-    }*/
     val items = listOf(
         BottomNavigationItem("Inicio", Icons.Filled.Home, Icons.Outlined.Home),
         BottomNavigationItem("Buscar", Icons.Default.SavedSearch, Icons.Outlined.Search),
+        BottomNavigationItem("Favoritos", Icons.Default.Favorite, Icons.Default.FavoriteBorder),
         BottomNavigationItem("Perfil", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle)
     )
     var selectedItemIndex by rememberSaveable { mutableStateOf(0) }
@@ -159,7 +157,8 @@ fun BarraInferior(navController: NavController, i: Int) {
         when (currentRoute) {
             "item_inicio" -> selectedItemIndex = 0
             "item_buscar" -> selectedItemIndex = 1
-            "item_perfil" -> selectedItemIndex = 2
+            "item_favoritos" -> selectedItemIndex = 2
+            "item_perfil" -> selectedItemIndex = 3
         }
     }
 
@@ -173,7 +172,7 @@ fun BarraInferior(navController: NavController, i: Int) {
                 selected = selectedItemIndex == index,
                 onClick = {
                     selectedItemIndex = index
-                    navController.navigate("item_" + item.titulo.toLowerCase())
+                    navController.navigate("item_" + item.titulo.lowercase())
                 }
             )
         }

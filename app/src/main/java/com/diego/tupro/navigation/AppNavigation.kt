@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.diego.tupro.screenPrincipal.ItemBuscar
+import com.diego.tupro.screenPrincipal.ItemFavoritos
 import com.diego.tupro.screenPrincipal.ItemInicio
 import com.diego.tupro.screenPrincipal.ItemPerfil
 import com.diego.tupro.screenSecundaria.ScreenBusquedaEquipos
@@ -105,6 +106,9 @@ fun AppNavigation(){
                     ScreenPerfil(navController, nombre, id)
                 }
             }
+        }
+        composable(AppScreens.ItemFavoritos.route) {
+            ItemFavoritos(navController)
         }
     }
 }
