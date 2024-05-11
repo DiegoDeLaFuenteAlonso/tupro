@@ -182,6 +182,9 @@ fun EstructuraItemPerfil(navController: NavController) {
                                                 }
                                             selecComp.clear()
                                         }
+                                        contarAportaciones().addOnSuccessListener { count ->
+                                            aportaciones.intValue = count
+                                        }
                                         showDialogEliminar = false
                                     },
                                     colors = ButtonDefaults.filledTonalButtonColors(colorScheme.errorContainer)
