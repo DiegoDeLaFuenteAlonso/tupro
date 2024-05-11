@@ -68,6 +68,7 @@ fun ScreenSesion(navController: NavController) {
 
     var textoSnackbar by remember { mutableStateOf("") }
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
+    var botonesActivos by remember { mutableStateOf(true) }
 
     Surface {
         Column(
@@ -167,8 +168,12 @@ fun ScreenSesion(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = {
+                        botonesActivos = false
+                        navController.popBackStack()
+                    },
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
+                    enabled = botonesActivos,
                     modifier = Modifier
                         .weight(1f)
                         .padding(all = paddingBotones)
@@ -181,6 +186,7 @@ fun ScreenSesion(navController: NavController) {
 
                 Button(
                     onClick = {
+                        botonesActivos = false
                         singIn(
                             textoCorreo.trim(),
                             textoPass.trim(),
@@ -188,10 +194,12 @@ fun ScreenSesion(navController: NavController) {
                             context,
                             { nuevoMensaje -> textoErrorCorreo = nuevoMensaje },
                             { nuevoMensaje -> textoErrorPass = nuevoMensaje },
-                            { nuevoMensaje -> textoSnackbar = nuevoMensaje}
+                            { nuevoMensaje -> textoSnackbar = nuevoMensaje},
+                            { nuevoMensaje -> botonesActivos = nuevoMensaje }
                         )
                     },
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
+                    enabled = botonesActivos,
                     modifier = Modifier
                         .weight(1f)
                         .padding(all = paddingBotones)
@@ -266,7 +274,8 @@ fun singIn(
     context: Context,
     actualizarErrorCorreo: (String) -> Unit,
     actualizarErrorPass: (String) -> Unit,
-    actualizarTextoSnackbar: (String) -> Unit
+    actualizarTextoSnackbar: (String) -> Unit,
+    botonesActivos: (Boolean) -> Unit
 ) {
     val auth = Firebase.auth
     val db = Firebase.firestore
@@ -350,11 +359,6 @@ fun singIn(
                                         "Falló de credenciales al intentar iniciar sesión"
                                     )
                                     actualizarErrorCorreo("Correo o contraseña incorrectos")
-                                    /*
-                                    if (task.exception is FirebaseAuthInvalidCredentialsException) {
-                                        // La contraseña no es válida
-                                        actualizarErrorCorreo("Correo o contraseña incorrectos")
-                                    }*/
                                 }
                             }
                     } else {
@@ -367,6 +371,7 @@ fun singIn(
         Log.w("Inicio_Sesion", "Excepcion en inicio sesion: ", e)
         actualizarTextoSnackbar("Error al iniciar sesión")
     }
+    botonesActivos(true)
 }
 
 @Preview(showSystemUi = true)

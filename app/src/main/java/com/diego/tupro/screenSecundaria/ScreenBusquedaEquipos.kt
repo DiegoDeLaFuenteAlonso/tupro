@@ -102,6 +102,7 @@ fun BodyContentPerfil(
     val numeroConsultasNombre = 1
     val numeroConsultasID = 1
     val maxEquipos = remember { mutableIntStateOf(2) }
+    var botonesActivos by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -383,6 +384,7 @@ fun BodyContentPerfil(
                     onClick = {
                         val user = Firebase.auth.currentUser
                         val uid = user?.uid
+                        botonesActivos = false
 
                         val counterRef = db.collection("counters").document("equiposCounter")
                         db.runTransaction { transaction ->
@@ -408,8 +410,9 @@ fun BodyContentPerfil(
                             /*TODO*/
                             Log.w("TAG", "Transaction failure.", e)
                         }
+                        botonesActivos = true
                     },
-                    enabled = selecEquiposBusqueda.size > 1 && selecEquiposBusqueda.size <= maxEquipos.intValue,
+                    enabled = selecEquiposBusqueda.size > 1 && selecEquiposBusqueda.size <= maxEquipos.intValue && botonesActivos,
                     modifier = Modifier
                         .fillMaxWidth(),
                     shape = RoundedCornerShape(Constantes.redondeoBoton)
