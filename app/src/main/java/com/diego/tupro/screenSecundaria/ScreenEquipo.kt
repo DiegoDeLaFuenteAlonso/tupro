@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -44,8 +47,11 @@ import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.DibujarColumnaItems
 import com.diego.tupro.screenPrincipal.Equipo
 import com.diego.tupro.screenPrincipal.ItemBusqueda
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +65,22 @@ fun ScreenEquipo(
     id: String
 ) {
     val equipo = Equipo(codigo, nombre, id, creador)
+    val esFav = remember { mutableStateOf(false) }
+    val actualizarFav = remember { mutableStateOf(false) }
+    val showDialog = remember { mutableStateOf(false) }
+    val auth = FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
+
+    LaunchedEffect(Unit) {
+        esFav.value = existeFavEquipos(equipo.idDocumento, uid)
+    }
+    LaunchedEffect(actualizarFav.value) {
+        if (actualizarFav.value) {
+            actualizarFavEquipos(equipo.idDocumento, uid)
+            actualizarFav.value = false
+            esFav.value = !esFav.value
+        }
+    }
     Scaffold(
         topBar = {
             Column{
@@ -75,10 +97,10 @@ fun ScreenEquipo(
                     },
                     actions = {
                         IconButton(
-                            onClick = { /*TODO añadir a favoritos*/ }
+                            onClick = { if(uid != null) actualizarFav.value = true else showDialog.value = true}
                         ) {
                             Icon(
-                                Icons.Outlined.FavoriteBorder,
+                                if (esFav.value) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "Añadir a favoritos"
                             )
                         }
@@ -89,6 +111,18 @@ fun ScreenEquipo(
         }
     ) {innerPadding ->
         BodyContentEquipo(innerPadding, navController, equipo)
+    }
+    if (showDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showDialog.value = false },
+            title = { Text("Advertencia") },
+            text = { Text("Para añadir equipos a favoritos\nes necesario iniciar sesión") },
+            confirmButton = {
+                Button(onClick = { showDialog.value = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
     }
 }
 
@@ -199,6 +233,37 @@ suspend fun getCompeticiones(id: String): SnapshotStateList<ItemBusqueda> {
     }
 
     return competiciones
+}
+
+suspend fun actualizarFavEquipos(idEquipo: String, uid: String?) = withContext(Dispatchers.IO) {
+    val db = FirebaseFirestore.getInstance()
+
+    if (uid != null) {
+        val userDocumentRef = db.collection("users").document(uid)
+
+        val userDocument = userDocumentRef.get().await()
+        val favEquipos = userDocument.get("favEquipos") as? MutableList<String> ?: mutableListOf()
+
+        if (idEquipo in favEquipos) {
+            favEquipos.remove(idEquipo)
+        } else {
+            favEquipos.add(idEquipo)
+        }
+
+        userDocumentRef.update("favEquipos", favEquipos).await()
+    }
+}
+
+suspend fun existeFavEquipos(id: String, uid: String?): Boolean = withContext(Dispatchers.IO) {
+    val db = FirebaseFirestore.getInstance()
+
+    if (uid != null) {
+        val userDocument = db.collection("users").document(uid).get().await()
+        val favEquipos = userDocument.get("favEquipos") as? List<String> ?: listOf()
+        return@withContext id in favEquipos
+    } else {
+        return@withContext false
+    }
 }
 
 @Preview(showSystemUi = true)

@@ -48,7 +48,7 @@ fun ItemBuscar(navController: NavController) {
         // containerColor = MaterialTheme.colorScheme.surfaceVariant,
         topBar = {
             Column {
-                BarraSuperior("")
+                BarraSuperior("Buscar")
             }
         },
         bottomBar = { BarraInferior(navController = navController, 1)}

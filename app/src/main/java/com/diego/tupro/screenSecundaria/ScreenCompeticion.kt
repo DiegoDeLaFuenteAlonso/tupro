@@ -20,15 +20,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Equalizer
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SportsSoccer
 import androidx.compose.material.icons.twotone.SportsSoccer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -57,45 +56,98 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.diego.prueba.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
-import com.diego.tupro.screenPrincipal.DibujarColumnaItems
+import com.diego.tupro.screenPrincipal.Comp
 import com.diego.tupro.screenPrincipal.ItemBusqueda
 import com.diego.tupro.screenPrincipal.TabItem
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun ScreenCompeticion(navController: NavController) {
-    Scaffold(
-        topBar = {
-            Column{
-                TopAppBar(
-                    title = {
-                        Text(text = "Competicion", color = colorScheme.primary, fontSize = 26.sp)
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = { navController.popBackStack() }
-                        ) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Atrás")
-                        }
-                    },
-                    actions = {
-                        IconButton(
-                            onClick = { /*TODO añadir a favoritos*/ }
-                        ) {
-                            Icon(
-                                Icons.Outlined.FavoriteBorder,
-                                contentDescription = "Añadir a favoritos"
-                            )
-                        }
-                    }
-                )
-                HorizontalDivider()
-            }
+fun ScreenCompeticion(
+    navController: NavController,
+    codigo: String,
+    creador: String,
+    competicion: String,
+    id: String
+) {
+    val comp = Comp(codigo, competicion, id, creador)
+    val esFav = remember { mutableStateOf(false) }
+    val isLoadingInterfaz = remember { mutableStateOf(true) }
+    val actualizarFav = remember { mutableStateOf(false) }
+    val showDialog = remember { mutableStateOf(false) }
+    val auth = FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
+
+    LaunchedEffect(Unit) {
+        limpiarEquiposBorrados(comp.idDocumento)
+        esFav.value = existeFavComp(comp.idDocumento, uid)
+        isLoadingInterfaz.value = false
+    }
+    LaunchedEffect(actualizarFav.value) {
+        if (actualizarFav.value) {
+            actualizarFavComp(comp.idDocumento, uid)
+            actualizarFav.value = false
+            esFav.value = !esFav.value
         }
-    ) {innerPadding ->
-        BodyContentCompeticion(innerPadding, navController)
+    }
+    if(isLoadingInterfaz.value){
+        Box (
+            modifier = Modifier
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ){
+            CircularProgressIndicator()
+        }
+    } else{
+        Scaffold(
+            topBar = {
+                Column{
+                    TopAppBar(
+                        title = {
+                            Text(text = "Competicion", color = colorScheme.primary, fontSize = 26.sp)
+                        },
+                        navigationIcon = {
+                            IconButton(
+                                onClick = { navController.popBackStack() }
+                            ) {
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Atrás")
+                            }
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = { if(uid != null) actualizarFav.value = true else showDialog.value = true}
+                            ) {
+                                Icon(
+                                    if (esFav.value) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                    contentDescription = "Añadir a favoritos"
+                                )
+                            }
+                        }
+                    )
+                    HorizontalDivider()
+                }
+            }
+        ) {innerPadding ->
+            BodyContentCompeticion(innerPadding, navController)
+        }
+        if (showDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showDialog.value = false },
+                title = { Text("Advertencia") },
+                text = { Text("Para añadir competiciones a favoritos\nes necesario iniciar sesión") },
+                confirmButton = {
+                    Button(onClick = { showDialog.value = false }) {
+                        Text("Aceptar")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -214,7 +266,7 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                 }
 
             } else if (index == 1) {
-
+                /*TODO*/
             }
         }
     }
@@ -244,6 +296,55 @@ fun TablaClasificacion(lista: List<ItemClasificacion>) {
     }
 }
 
+suspend fun actualizarFavComp(idComp: String, uid: String?) = withContext(Dispatchers.IO) {
+    val db = FirebaseFirestore.getInstance()
+
+    if (uid != null) {
+        val userDocumentRef = db.collection("users").document(uid)
+
+        val userDocument = userDocumentRef.get().await()
+        val favComp = userDocument.get("favCompeticiones") as? MutableList<String> ?: mutableListOf()
+
+        if (idComp in favComp) {
+            favComp.remove(idComp)
+        } else {
+            favComp.add(idComp)
+        }
+
+        userDocumentRef.update("favCompeticiones", favComp).await()
+    }
+}
+
+suspend fun existeFavComp(id: String, uid: String?): Boolean = withContext(Dispatchers.IO) {
+    val db = FirebaseFirestore.getInstance()
+
+    if (uid != null) {
+        val userDocument = db.collection("users").document(uid).get().await()
+        val favComp = userDocument.get("favCompeticiones") as? List<String> ?: listOf()
+        return@withContext id in favComp
+    } else {
+        return@withContext false
+    }
+}
+
+suspend fun limpiarEquiposBorrados(compId: String) {
+    val db = FirebaseFirestore.getInstance()
+    val compDocumentRef = db.collection("competiciones").document(compId)
+
+    val compDocument = compDocumentRef.get().await()
+    val equiposComp = compDocument.get("equipos") as MutableList<String>
+
+    val equiposCollection = db.collection("equipos")
+    for (equipoID in equiposComp.toList()) {
+        val equiposDocument = equiposCollection.document(equipoID).get().await()
+        if (!equiposDocument.exists()) {
+            equiposComp.remove(equipoID)
+        }
+    }
+
+    compDocumentRef.update("equipos", equiposComp).await()
+}
+
 data class ItemClasificacion(
     val nombre: String,
     val puntos: Int,
@@ -261,7 +362,7 @@ data class ItemClasificacion(
 fun GreetingPreviewCompeticion1() {
     TuproTheme(darkTheme = false) {
         val navController = rememberNavController()
-        ScreenCompeticion(navController)
+        ScreenCompeticion(navController, "codigo", "creador", "competicion", "id")
     }
 }
 
@@ -270,6 +371,6 @@ fun GreetingPreviewCompeticion1() {
 fun GreetingPreviewDarkCompeticion1() {
     TuproTheme(darkTheme = true) {
         val navController = rememberNavController()
-        ScreenCompeticion(navController)
+        ScreenCompeticion(navController, "codigo", "creador", "competicion", "id")
     }
 }
