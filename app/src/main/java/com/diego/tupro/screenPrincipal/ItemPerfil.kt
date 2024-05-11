@@ -795,7 +795,7 @@ fun BodyContentPerfil(
                                                 )
                                             }
                                         },
-                                        headlineContent = { Text(comp.equipo) },
+                                        headlineContent = { Text(comp.nombre) },
                                         supportingContent = { Text("#" + comp.idDocumento) },
                                         trailingContent = { Text(comp.creador) },
                                         modifier = Modifier.combinedClickable(
@@ -809,7 +809,7 @@ fun BodyContentPerfil(
                                                     } else {
                                                         selecComp.add(comp)
                                                     }
-                                                } else {navController.navigate("screen_competicion")}
+                                                } else {navController.navigate("screen_competicion/${comp.codigo}/${comp.creador}/${comp.nombre}/${comp.idDocumento}")}
                                             },
                                             onLongClick = {
                                                 modoEdicion.value = true
@@ -840,7 +840,7 @@ data class Equipo(
 
 data class Comp(
     val codigo: String,
-    val equipo: String,
+    val nombre: String,
     val idDocumento: String,
     val creador: String
 )

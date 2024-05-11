@@ -118,7 +118,7 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
                 modifier = Modifier
                     .clickable {
                         if (it.tipo == "Equipo") navController.navigate("screen_equipo/${it.codigo}/${it.creador}/${it.nombre}/${it.idDocumento}")
-                        else if (it.tipo == "Competicion") navController.navigate("screen_competicion")
+                        else if (it.tipo == "Competicion") navController.navigate("screen_competicion/${it.codigo}/${it.creador}/${it.nombre}/${it.idDocumento}")
                         else if (it.tipo == "Usuario") {
                             val auth = FirebaseAuth.getInstance()
                             val uid = auth.currentUser?.uid
