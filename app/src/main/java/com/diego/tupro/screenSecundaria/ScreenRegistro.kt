@@ -75,6 +75,7 @@ fun ScreenRegistro(navController: NavController) {
     var textoErrorConfirmPass by remember { mutableStateOf("") }
 
     var textoSnackbar by remember { mutableStateOf("") }
+    var botonesActivos by remember { mutableStateOf(true) }
 
     val focusRequester1 = remember { FocusRequester() }
     val focusRequester2 = remember { FocusRequester() }
@@ -105,7 +106,7 @@ fun ScreenRegistro(navController: NavController) {
 
             OutlinedTextField(
                 value = textoUsuario,
-                onValueChange = { if (it.length <= 20) textoUsuario = it},
+                onValueChange = { if (it.length <= 20) textoUsuario = it },
                 label = { Text("Nombre de usuario") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
@@ -132,7 +133,9 @@ fun ScreenRegistro(navController: NavController) {
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusRequester2.requestFocus() }),
-                modifier = Modifier.fillMaxWidth().focusRequester(focusRequester1),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focusRequester1),
                 isError = textoErrorCorreo.isNotEmpty(),
                 supportingText = { Text(textoErrorCorreo) },
                 trailingIcon = {
@@ -153,7 +156,10 @@ fun ScreenRegistro(navController: NavController) {
                 label = { Text("Contraseña") },
                 singleLine = true,
                 visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
                 keyboardActions = KeyboardActions(onNext = { focusRequester3.requestFocus() }),
                 isError = textoErrorPass.isNotEmpty(),
                 supportingText = { Text(textoErrorPass) },
@@ -201,8 +207,12 @@ fun ScreenRegistro(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 OutlinedButton(
-                    onClick = { navController.popBackStack() },
+                    onClick = {
+                        botonesActivos = false
+                        navController.popBackStack()
+                    },
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
+                    enabled = botonesActivos,
                     modifier = Modifier
                         .weight(1f)
                         .padding(all = paddingBotones)
@@ -215,6 +225,7 @@ fun ScreenRegistro(navController: NavController) {
 
                 Button(
                     onClick = {
+                        botonesActivos = false
                         registrarUsuario(
                             textoUsuario.trim(),
                             textoCorreo.trim(),
@@ -226,10 +237,12 @@ fun ScreenRegistro(navController: NavController) {
                             { nuevoMensaje -> textoErrorCorreo = nuevoMensaje },
                             { nuevoMensaje -> textoErrorPass = nuevoMensaje },
                             { nuevoMensaje -> textoErrorConfirmPass = nuevoMensaje },
-                            { nuevoMensaje -> textoSnackbar = nuevoMensaje}
+                            { nuevoMensaje -> textoSnackbar = nuevoMensaje },
+                            { nuevoMensaje -> botonesActivos = nuevoMensaje }
                         )
                     },
                     shape = RoundedCornerShape(Constantes.redondeoBoton),
+                    enabled = botonesActivos,
                     modifier = Modifier
                         .weight(1f)
                         .padding(all = paddingBotones)
@@ -244,7 +257,7 @@ fun ScreenRegistro(navController: NavController) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.BottomCenter
-        ){
+        ) {
             if (textoSnackbar.isNotEmpty()) {
                 softwareKeyboardController?.hide()
                 Snackbar(
@@ -277,7 +290,8 @@ fun registrarUsuario(
     actualizarErrorCorreo: (String) -> Unit,
     actualizarErrorPass: (String) -> Unit,
     actualizarErrorConfirmPass: (String) -> Unit,
-    actualizarTextoSnackbar: (String) -> Unit
+    actualizarTextoSnackbar: (String) -> Unit,
+    botonesActivos: (Boolean) -> Unit
 ) {
     val auth = Firebase.auth
     val db = Firebase.firestore
@@ -292,13 +306,13 @@ fun registrarUsuario(
         // ya es trim aqui
         if (textoUsuario.isEmpty() || textoCorreo.isEmpty() || textoPass.isEmpty() || textoConfirmPass.isEmpty()) {
             Log.d("registro", "Todos los campos deben estar rellenos")
-            if (textoUsuario.isEmpty()){
+            if (textoUsuario.isEmpty()) {
                 actualizarErrorUsuario("Este campo es obligatorio")
-            } else if (textoCorreo.isEmpty()){
+            } else if (textoCorreo.isEmpty()) {
                 actualizarErrorCorreo("Este campo es obligatorio")
-            } else if (textoPass.isEmpty()){
+            } else if (textoPass.isEmpty()) {
                 actualizarErrorPass("Este campo es obligatorio")
-            } else if (textoConfirmPass.isEmpty()){
+            } else if (textoConfirmPass.isEmpty()) {
                 actualizarErrorConfirmPass("Este campo es obligatorio")
             }
         } else if (!isEmailValid(textoCorreo)) {
@@ -347,8 +361,7 @@ fun registrarUsuario(
                                                                 if (task3.isSuccessful) {
                                                                     Log.d("registro", "Correo de verificación enviado")
                                                                 } else {
-                                                                    Log.d("registro", "Error al enviar el correo de verificación"
-                                                                    )
+                                                                    Log.d("registro", "Error al enviar el correo de verificación")
                                                                     navController.popBackStack()
                                                                 }
                                                             }
@@ -378,6 +391,7 @@ fun registrarUsuario(
         Log.w("registro", "Excepcion intento registro: ", e)
         actualizarTextoSnackbar("Ha surgido un error en el intento de registro")
     }
+    botonesActivos(true)
 }
 
 

@@ -54,6 +54,8 @@ fun ItemFavoritos(navController: NavController) {
 @Composable
 fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavController) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val auth = FirebaseAuth.getInstance()
+    val uid = auth.currentUser?.uid
 
     val equiposFav = remember { mutableStateListOf<ItemBusqueda>() }
     val compFav = remember { mutableStateListOf<ItemBusqueda>() }
@@ -61,8 +63,6 @@ fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavControll
     val isLoadingComp = remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        val auth = FirebaseAuth.getInstance()
-        val uid = auth.currentUser?.uid
         if (uid != null) {
             limpiarEquiposFavoritas(uid)
             equiposFav.addAll(getEquiposFavoritos(uid))
@@ -70,8 +70,6 @@ fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavControll
         isLoadingEquipos.value = false
     }
     LaunchedEffect(Unit) {
-        val auth = FirebaseAuth.getInstance()
-        val uid = auth.currentUser?.uid
         if (uid != null) {
             limpiarCompeticionesFavoritas(uid)
             compFav.addAll(getCompeticionesFavoritos(uid))
@@ -128,9 +126,23 @@ fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavControll
             modifier = Modifier
                 .fillMaxSize()
         ) { index ->
-
             if (index == 0) {
-                if(isLoadingEquipos.value){
+                if(uid == null){
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Accede con tu cuenta para \nañadir equipos favoritos",
+                            fontSize = 22.sp,
+                            color = MaterialTheme.colorScheme.secondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                else if(isLoadingEquipos.value){
                     Box (
                         modifier = Modifier
                             .fillMaxSize(),
@@ -157,6 +169,21 @@ fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavControll
                     DibujarColumnaItems(equiposFav, navController)
                 }
             } else if (index == 1) {
+                if(uid == null){
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Accede con tu cuenta para \nañadir competiciones favoritas",
+                            fontSize = 22.sp,
+                            color = MaterialTheme.colorScheme.secondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
                 if(isLoadingComp.value){
                     Box (
                         modifier = Modifier

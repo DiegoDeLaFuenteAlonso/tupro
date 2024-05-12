@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -37,6 +38,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,6 +101,8 @@ fun BodyContentPerfil(
     val consultasID = remember { mutableStateListOf(1) }
     val numeroConsultasNombre = 1
     val numeroConsultasID = 1
+    val maxEquipos = remember { mutableIntStateOf(2) }
+    var botonesActivos by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -283,7 +287,7 @@ fun BodyContentPerfil(
 
         Row(
             modifier = Modifier
-                .weight(0.8f)
+                .weight(0.75f)
                 .fillMaxWidth()
         ) {
             if(consultasNombre.size < numeroConsultasNombre && consultasID.size < numeroConsultasID){
@@ -352,48 +356,69 @@ fun BodyContentPerfil(
         }
         Row (
             modifier = Modifier
-                .weight(0.1f)
+                .weight(0.15f)
                 .fillMaxWidth()
                 .padding(start = 20.dp, top = 5.dp, end = 20.dp, bottom = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ){
-            Button(
-                onClick = {
-                    val user = Firebase.auth.currentUser
-                    val uid = user?.uid
+            Column (
+                modifier = Modifier.fillMaxWidth()
+            ){
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(Constantes.redondeoBoton))
+                        .background(if (selecEquiposBusqueda.size > maxEquipos.intValue) colorScheme.errorContainer else colorScheme.secondaryContainer)
+                        .align(Alignment.CenterHorizontally)
+                ){
+                    Text(
+                        text = selecEquiposBusqueda.size.toString() + "/" + maxEquipos.intValue.toString(),
+                        color = if (selecEquiposBusqueda.size > maxEquipos.intValue) colorScheme.onErrorContainer else colorScheme.onSecondaryContainer,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(start = 5.dp, end = 5.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        val user = Firebase.auth.currentUser
+                        val uid = user?.uid
+                        botonesActivos = false
 
-                    val counterRef = db.collection("counters").document("equiposCounter")
-                    db.runTransaction { transaction ->
-                        val snapshot = transaction.get(counterRef)
-                        val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
-                        transaction.update(counterRef, "counter", newCounter)
+                        val counterRef = db.collection("counters").document("equiposCounter")
+                        db.runTransaction { transaction ->
+                            val snapshot = transaction.get(counterRef)
+                            val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
+                            transaction.update(counterRef, "counter", newCounter)
 
-                        val competicionesRef = db.collection("competiciones").document(newCounter.toString())
-                        val equipos = selecEquiposBusqueda.map { it.idDocumento }
-                        val competicionData = hashMapOf(
-                            "competicion" to competicion,
-                            "codigo" to codigo,
-                            "nombreBusqueda" to (competicion?.uppercase() ?: ""),
-                            "creador" to uid,
-                            "equipos" to equipos
-                        )
-                        transaction.set(competicionesRef, competicionData)
-                    }.addOnSuccessListener {
-                        /*TODO*/
-                        Log.d("TAG", "Transaction success!")
-                        Constantes.reiniciarNavegacion(navController)
-                    }.addOnFailureListener { e ->
-                        /*TODO*/
-                        Log.w("TAG", "Transaction failure.", e)
-                    }
-                },
-                enabled = selecEquiposBusqueda.size > 1,
-                modifier = Modifier
-                    .fillMaxWidth(),
-                shape = RoundedCornerShape(Constantes.redondeoBoton)
-            ) {
-                Text(text = "Crear competición")
+                            val competicionesRef = db.collection("competiciones").document(newCounter.toString())
+                            val equipos = selecEquiposBusqueda.map { it.idDocumento }
+                            val competicionData = hashMapOf(
+                                "competicion" to competicion,
+                                "codigo" to codigo,
+                                "nombreBusqueda" to (competicion?.uppercase() ?: ""),
+                                "creador" to uid,
+                                "equipos" to equipos
+                            )
+                            transaction.set(competicionesRef, competicionData)
+                        }.addOnSuccessListener {
+                            /*TODO*/
+                            Log.d("TAG", "Transaction success!")
+                            Constantes.reiniciarNavegacion(navController)
+                        }.addOnFailureListener { e ->
+                            /*TODO*/
+                            Log.w("TAG", "Transaction failure.", e)
+                        }
+                        botonesActivos = true
+                    },
+                    enabled = selecEquiposBusqueda.size > 1 && selecEquiposBusqueda.size <= maxEquipos.intValue && botonesActivos,
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    shape = RoundedCornerShape(Constantes.redondeoBoton)
+                ) {
+                    Text(text = "Crear competición")
+                }
             }
         }
     }

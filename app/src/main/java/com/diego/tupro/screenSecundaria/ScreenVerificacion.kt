@@ -40,8 +40,8 @@ import com.google.firebase.ktx.Firebase
 @Composable
 fun ScreenVerificacion(navController: NavController) {
     var message by remember { mutableStateOf("") }
-    var isChecking by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var botonesActivos by remember { mutableStateOf(true) }
 
     Surface {
         Column(
@@ -51,8 +51,8 @@ fun ScreenVerificacion(navController: NavController) {
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth() // Ajusta el ancho al de la columna
-                    .padding(start = 16.dp, end = 16.dp) // Añade un margen alrededor del box
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = Constantes.redondeoBoton,
@@ -62,7 +62,7 @@ fun ScreenVerificacion(navController: NavController) {
                         )
                     )
                     .background(colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center // Centra el contenido del box
+                contentAlignment = Alignment.Center
             ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -81,11 +81,15 @@ fun ScreenVerificacion(navController: NavController) {
                     )
                     Button(
                         onClick = {
-                            comprobarVerificacion(navController, context, message) { nuevoMensaje ->
+                            botonesActivos = false
+                            comprobarVerificacion(navController, context, { nuevoMensaje ->
+                                botonesActivos = nuevoMensaje
+                            }) { nuevoMensaje ->
                                 message = nuevoMensaje
                             }
                         },
                         shape = RoundedCornerShape(Constantes.redondeoBoton),
+                        enabled = botonesActivos,
                         modifier = Modifier
                             .padding(
                                 top = 16.dp,
@@ -101,12 +105,12 @@ fun ScreenVerificacion(navController: NavController) {
             if (message.isNotEmpty()) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth() // Ajusta el ancho al de la columna
+                        .fillMaxWidth()
                         .padding(
                             start = 16.dp,
                             end = 16.dp,
                             bottom = 16.dp
-                        ) // Añade un margen alrededor del box
+                        )
                         .clip(
                             RoundedCornerShape(
                                 topStart = 0.dp,
@@ -114,9 +118,9 @@ fun ScreenVerificacion(navController: NavController) {
                                 bottomStart = Constantes.redondeoBoton,
                                 bottomEnd = Constantes.redondeoBoton
                             )
-                        ) // Redondea solo las esquinas inferiores
+                        )
                         .background(colorScheme.errorContainer),
-                    contentAlignment = Alignment.Center // Centra el contenido del box
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         message,
@@ -130,12 +134,12 @@ fun ScreenVerificacion(navController: NavController) {
             } else {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth() // Ajusta el ancho al de la columna
+                        .fillMaxWidth()
                         .padding(
                             start = 16.dp,
                             end = 16.dp,
                             bottom = 16.dp
-                        ) // Añade un margen alrededor del box
+                        )
                         .clip(
                             RoundedCornerShape(
                                 topStart = 0.dp,
@@ -143,7 +147,7 @@ fun ScreenVerificacion(navController: NavController) {
                                 bottomStart = Constantes.redondeoBoton,
                                 bottomEnd = Constantes.redondeoBoton
                             )
-                        ) // Redondea solo las esquinas inferiores
+                        )
                         .background(colorScheme.secondaryContainer),
                 ) {
                     Text(text = "")
@@ -152,27 +156,37 @@ fun ScreenVerificacion(navController: NavController) {
             Text(
                 text = "¿No lo encuentras? Volver a enviar correo",
                 color = colorScheme.secondary,
-                modifier = Modifier.clickable { reenviarCorreo() }
+                modifier = Modifier.clickable {
+                    reenviarCorreo { nuevoMensaje ->
+                        message = nuevoMensaje
+                    }
+                }
             )
         }
     }
 }
 
 // Función para reenviar el correo de verificación
-fun reenviarCorreo() {
+fun reenviarCorreo(actualizarMensaje: (String) -> Unit) {
     val auth = Firebase.auth
     auth.currentUser?.sendEmailVerification()?.addOnCompleteListener { task ->
         if (task.isSuccessful) {
             Log.d("verificacion", "Correo de verificación reenviado")
+            //actualizarMensaje("Correo reenviado")
         } else {
             Log.d("verificacion", "Error al reenviar el correo de verificación")
-            // TODO: Manejar este error
+            actualizarMensaje("Error al enviar el correo")
         }
     }
 }
 
 // Función para comprobar si el correo del usuario está verificado
-fun comprobarVerificacion(navController: NavController, context: Context, message: String, actualizarMensaje: (String) -> Unit) {
+fun comprobarVerificacion(
+    navController: NavController,
+    context: Context,
+    botonesActivos: (Boolean) -> Unit,
+    actualizarMensaje: (String) -> Unit
+) {
     val auth = Firebase.auth
     auth.currentUser?.reload()?.addOnCompleteListener { task ->
         if (task.isSuccessful) {
@@ -184,14 +198,16 @@ fun comprobarVerificacion(navController: NavController, context: Context, messag
             } else {
                 actualizarMensaje("El correo aun no esta verificado")
             }
+            botonesActivos(true)
         } else {
             Log.d("verificacion", "Error al recargar el usuario")
-            // TODO: Manejar este error
+            actualizarMensaje("Ha surgido un error inesperado")
+            botonesActivos(true)
         }
     }
 }
 
-fun guardarSesion(context: Context){
+fun guardarSesion(context: Context) {
     val sessionManager = SessionManager(context)
     val db = com.google.firebase.Firebase.firestore
     val auth = com.google.firebase.Firebase.auth
