@@ -46,7 +46,7 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemInicio(navController: NavController) {
-    Scaffold (
+    Scaffold(
         topBar = {
             Column {
                 BarraSuperior("")
@@ -57,19 +57,22 @@ fun ItemInicio(navController: NavController) {
                 ) {
                     FilaInicio()
                 }
-                HorizontalDivider(thickness = 1.dp, modifier = Modifier.padding(start = 16.dp, end = 16.dp))
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                )
             }
         },
         bottomBar = { BarraInferior(navController = navController, 0) }
 
-        ) { innerPadding ->
+    ) { innerPadding ->
         BodyContentInicio(innerPadding, navController)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BodyContentInicio(padding: PaddingValues, navController: NavController){
+fun BodyContentInicio(padding: PaddingValues, navController: NavController) {
     // Lista de textos para los botones
     // val listaDeBotones = listOf("Botón 1", "Botón 2", "Botón 3", "Botón 4", "Botón 5", "Botón 6", "Botón 7", "Botón 8", "Botón 9")
     val partidos = listOf(
@@ -90,19 +93,16 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController){
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            //.verticalScroll(rememberScrollState(), true)
     ) {
-
-        // Itera sobre la lista de textos y crea un botón para cada uno
         items(partidos) { partido ->
             // card
             ElevatedCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 15.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(8.dp),
-                onClick = {navController.navigate("screen_partido")}
+                shape = RoundedCornerShape(Constantes.redondeoBoton),
+                elevation = CardDefaults.cardElevation(2.dp),
+                onClick = { navController.navigate("screen_partido") }
 
             ) {
                 // competicion
@@ -110,13 +110,19 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController){
                     Modifier
                         .background(colorScheme.surface)
                         .fillMaxWidth()
-                        .padding(start = 16.dp, top = 10.dp, bottom = 4.dp),
-                    horizontalArrangement = Arrangement.Start
+                        .padding(start = 16.dp, top = 10.dp, bottom = 4.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(partido.liga)
+                    Text(partido.competicion)
+                    Text(/*partido.estado*/ "tiempo")
+                    Text(/*partido.estado*/ "estado")
                 }
 
-                HorizontalDivider(color = colorScheme.outline, thickness = 0.dp, modifier = Modifier.padding(start = 16.dp, end = 16.dp))
+                HorizontalDivider(
+                    color = colorScheme.outline,
+                    thickness = 0.dp,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                )
 
                 Row(
                     Modifier
@@ -131,7 +137,12 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController){
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(partido.local, textAlign = TextAlign.Center, fontSize = 18.sp, color = colorScheme.onSurface)
+                        Text(
+                            partido.local,
+                            textAlign = TextAlign.Center,
+                            fontSize = 18.sp,
+                            color = colorScheme.onSurface
+                        )
                     }
                     // hora
                     Box(
@@ -139,7 +150,8 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController){
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = partido.hora,
+                        Text(
+                            text = partido.hora,
                             textAlign = TextAlign.Center,
                             fontSize = 21.sp,
                             fontWeight = FontWeight.Bold,
@@ -153,7 +165,12 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController){
                             .weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(partido.visitante, textAlign = TextAlign.Center, fontSize = 18.sp, color = colorScheme.onSurface)
+                        Text(
+                            partido.visitante,
+                            textAlign = TextAlign.Center,
+                            fontSize = 18.sp,
+                            color = colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -163,7 +180,7 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController){
 
 
 @Composable
-fun FilaInicio(){
+fun FilaInicio() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -180,13 +197,16 @@ fun FilaInicio(){
             )
         }
         ElevatedButton(
-            onClick = {/* haz algo */},
+            onClick = {/* haz algo */ },
             // elevation = ButtonDefaults.buttonElevation(4.dp),
             shape = RoundedCornerShape(Constantes.redondeoBoton)
             // colors = ButtonDefaults.buttonColors(colorScheme.surfaceVariant)
-        ){
+        ) {
             Text(
-                text = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), /*color = colorScheme.onSurfaceVariant,*/ fontSize = 20.sp)
+                text = LocalDate.now()
+                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), /*color = colorScheme.onSurfaceVariant,*/
+                fontSize = 20.sp
+            )
         }
         IconButton(onClick = { /* Haz algo*/ }) {
             Icon(
@@ -201,7 +221,7 @@ fun FilaInicio(){
 }
 
 data class Partido(
-    val liga: String,
+    val competicion: String,
     val local: String,
     val visitante: String,
     val fecha: String,
@@ -209,6 +229,18 @@ data class Partido(
     val estado: String?,
     val marcador: String?
 )
+/*data class Partido(
+    val competicion: String,
+    val local: String,
+    val visitante: String,
+    val fecha: String,
+    val hora: String,
+    val estado: String,
+    val golesLocal: String,
+    val creador: String,
+    val minutos: String,
+    val ganador: String
+)*/
 
 @Preview(showSystemUi = true)
 @Composable
