@@ -19,6 +19,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Equalizer
@@ -28,7 +29,10 @@ import androidx.compose.material.icons.twotone.SportsSoccer
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,22 +46,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.prueba.ui.theme.TuproTheme
+import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
+import com.diego.tupro.SessionManager
 import com.diego.tupro.screenPrincipal.Comp
-import com.diego.tupro.screenPrincipal.ItemBusqueda
 import com.diego.tupro.screenPrincipal.TabItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -83,6 +87,8 @@ fun ScreenCompeticion(
     val showDialog = remember { mutableStateOf(false) }
     val auth = FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid
+    val sessionManager = SessionManager(LocalContext.current)
+    val user = sessionManager.getUserDetails()
 
     LaunchedEffect(Unit) {
         limpiarEquiposBorrados(comp.idDocumento)
@@ -132,9 +138,33 @@ fun ScreenCompeticion(
                     )
                     HorizontalDivider()
                 }
-            }
+            },
+            floatingActionButton = {
+                if (user["username"] == comp.creador) {
+                    var showMenu by remember { mutableStateOf(false) }
+
+                    Box {
+                        FloatingActionButton(onClick = { showMenu = !showMenu }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Crear partido")
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                onClick = {
+                                    showMenu = false
+                                    navController.navigate("screen_crear_partido/${comp.idDocumento}")
+                                },
+                                text = { Text(text = "Crear partido") }
+                            )
+                        }
+                    }
+                }
+            },
         ) {innerPadding ->
-            BodyContentCompeticion(innerPadding, navController)
+            BodyContentCompeticion(innerPadding, navController, comp)
         }
         if (showDialog.value) {
             AlertDialog(
@@ -153,9 +183,8 @@ fun ScreenCompeticion(
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavController) {
-    val equipo = ItemBusqueda("LB", "La Bañeza", "1", "Diego", "Equipo")
-    val competiciones = remember { mutableStateListOf<ItemBusqueda>(ItemBusqueda("LB", "La Bañeza", "1", "Diego", "Equipo"), ItemBusqueda("LB", "La Bañeza", "1", "Diego", "Equipo")) }
+fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavController, comp: Comp) {
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -163,7 +192,6 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
     ) {
         Row(
             modifier = Modifier
-                //.weight(0.2f)
                 .fillMaxWidth()
                 .padding(top = 15.dp, bottom = 20.dp),
             horizontalArrangement = Arrangement.Center
@@ -179,13 +207,13 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
 
                 ) {
                     Text(
-                        equipo.codigo.uppercase(Locale.ROOT),
+                        comp.codigo.uppercase(Locale.ROOT),
                         color = colorScheme.onSecondaryContainer,
                         fontSize = 30.sp
                     )
                 }
-                Text(text = equipo.nombre + " #" + equipo.idDocumento)
-                Text(text = equipo.creador)
+                Text(text = comp.nombre + " #" + comp.idDocumento)
+                Text(text = comp.creador)
             }
         }
         HorizontalDivider()
@@ -242,7 +270,6 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                     ItemClasificacion("Equipo 2", 9, 5, 3, 0, 2, 7, 5),
                     ItemClasificacion("Equipo 3", 8, 5, 2, 2, 1, 6, 4),
                 )
-                //Text(text = "hola")
 
                 Column(
                     Modifier.padding(10.dp)

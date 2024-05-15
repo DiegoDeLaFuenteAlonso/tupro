@@ -19,32 +19,34 @@ import com.diego.tupro.screenSecundaria.ScreenBusquedaEquipos
 import com.diego.tupro.screenSecundaria.ScreenCompeticion
 import com.diego.tupro.screenSecundaria.ScreenCrearCompeticion
 import com.diego.tupro.screenSecundaria.ScreenCrearEquipo
+import com.diego.tupro.screenSecundaria.ScreenCrearPartido
 import com.diego.tupro.screenSecundaria.ScreenEquipo
 import com.diego.tupro.screenSecundaria.ScreenPartido
 import com.diego.tupro.screenSecundaria.ScreenPerfil
 import com.diego.tupro.screenSecundaria.ScreenRegistro
+import com.diego.tupro.screenSecundaria.ScreenSeleccionarFecha
 import com.diego.tupro.screenSecundaria.ScreenSesion
 import com.diego.tupro.screenSecundaria.ScreenVerificacion
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun AppNavigation(){
+fun AppNavigation() {
     val navController = rememberNavController()
     val mostrarBarra = remember { mutableStateOf(false) }
-    Scaffold (
-        bottomBar =  { if (mostrarBarra.value) BarraInferior(navController, 0) }
-    ){
+    Scaffold(
+        bottomBar = { if (mostrarBarra.value) BarraInferior(navController, 0) }
+    ) {
 
-        NavHost(navController, AppScreens.ItemInicio.route){
-            composable(AppScreens.ItemInicio.route){
+        NavHost(navController, AppScreens.ItemInicio.route) {
+            composable(AppScreens.ItemInicio.route) {
                 mostrarBarra.value = true
                 ItemInicio(navController)
             }
-            composable(AppScreens.ItemBuscar.route){
+            composable(AppScreens.ItemBuscar.route) {
                 mostrarBarra.value = true
                 ItemBuscar(navController)
             }
-            composable(AppScreens.ItemPerfil.route){
+            composable(AppScreens.ItemPerfil.route) {
                 mostrarBarra.value = true
                 ItemPerfil(navController)
             }
@@ -151,6 +153,34 @@ fun AppNavigation(){
             composable(AppScreens.ItemFavoritos.route) {
                 mostrarBarra.value = true
                 ItemFavoritos(navController)
+            }
+            composable(
+                route = AppScreens.ScreenCrearPartido.route + "/{id}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType }
+                )
+            ) {
+                val id = it.arguments?.getString("id")
+                if (id != null) {
+                    mostrarBarra.value = false
+                    ScreenCrearPartido(navController, id)
+                }
+            }
+            composable(
+                route = AppScreens.ScreenSeleccionarFecha.route + "/{id}/{idLocal}/{idVisitante}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType },
+                    navArgument("idLocal") { type = NavType.StringType },
+                    navArgument("idVisitante") { type = NavType.StringType }
+                )
+            ) {
+                val id = it.arguments?.getString("id")
+                val idL = it.arguments?.getString("idLocal")
+                val idV = it.arguments?.getString("idVisitante")
+                if (id != null && idL != null && idV != null) {
+                    mostrarBarra.value = false
+                    ScreenSeleccionarFecha(navController, id, idL, idV)
+                }
             }
         }
     }

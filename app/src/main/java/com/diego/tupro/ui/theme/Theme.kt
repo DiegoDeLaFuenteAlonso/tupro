@@ -1,4 +1,4 @@
-package com.diego.prueba.ui.theme
+package com.diego.tupro.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
