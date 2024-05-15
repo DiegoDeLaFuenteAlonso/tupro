@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.prueba.ui.theme.TuproTheme
+import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth

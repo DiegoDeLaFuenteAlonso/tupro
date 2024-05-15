@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.prueba.ui.theme.TuproTheme
+import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.DibujarColumnaItems
 import com.diego.tupro.screenPrincipal.Equipo
@@ -128,7 +128,6 @@ fun ScreenEquipo(
 
 @Composable
 fun BodyContentEquipo(innerPadding: PaddingValues, navController: NavController, equipo: Equipo) {
-    //val competiciones = remember { mutableStateListOf(ItemBusqueda("LB", "La Bañeza", "1", "Diego", "Equipo"), ItemBusqueda("LB", "La Bañeza", "1", "Diego", "Equipo")) }
     val competiciones = remember { mutableStateListOf<ItemBusqueda>() }
     val isLoading = remember { mutableStateOf(true) }
     LaunchedEffect(equipo.idDocumento) {

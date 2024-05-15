@@ -1,20 +1,16 @@
 package com.diego.tupro
 
-import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.diego.prueba.ui.theme.TuproTheme
+import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.navigation.AppNavigation
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
-import com.google.firebase.FirebaseApp
 
 enum class TipoProveedor{
     BASIC,
@@ -39,19 +35,13 @@ fun IniciarApp() {
     val systemUiController = rememberSystemUiController()
     val temaOscuro = isSystemInDarkTheme()
 
-    val statusBarColor = MaterialTheme.colorScheme.background
-    var navigationBarColor = Color(0xFFe7f1e7)
-    if (temaOscuro){
-       navigationBarColor = Color(0xFF1c2c21)
-    }
-
     SideEffect {
         systemUiController.setSystemBarsColor(
-            color = statusBarColor,
+            color = Color.Transparent,
             darkIcons = !temaOscuro
         )
         systemUiController.setNavigationBarColor(
-            color = navigationBarColor,
+            color = Color.Transparent,
             darkIcons = !temaOscuro
         )
     }

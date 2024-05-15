@@ -1,4 +1,4 @@
-package com.diego.prueba.ui.theme
+package com.diego.tupro.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

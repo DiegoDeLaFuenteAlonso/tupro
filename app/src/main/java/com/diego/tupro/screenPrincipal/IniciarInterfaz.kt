@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.diego.prueba.ui.theme.TuproTheme
+import com.diego.tupro.ui.theme.TuproTheme
 import androidx.compose.material.icons.filled.SavedSearch
 import androidx.compose.material3.ListItem
 import androidx.compose.runtime.snapshots.SnapshotStateList
