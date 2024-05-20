@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
@@ -35,13 +36,19 @@ fun IniciarApp() {
     val systemUiController = rememberSystemUiController()
     val temaOscuro = isSystemInDarkTheme()
 
+    val statusBarColor = MaterialTheme.colorScheme.background
+    var navigationBarColor = Color(0xFFe7f1e7)
+    if (temaOscuro){
+        navigationBarColor = Color(0xFF1c2c21)
+    }
+
     SideEffect {
         systemUiController.setSystemBarsColor(
-            color = Color.Transparent,
+            color = statusBarColor,
             darkIcons = !temaOscuro
         )
         systemUiController.setNavigationBarColor(
-            color = Color.Transparent,
+            color = navigationBarColor,
             darkIcons = !temaOscuro
         )
     }

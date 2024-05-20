@@ -161,7 +161,7 @@ fun BodyContentScreenSeleccionarFecha(
             TimePicker(state = stateHora)
         }
     }
-    if(isLoading.value){
+    if(isLoading.value ){
         Box (
             modifier = Modifier
                 .padding(paddingValues)
@@ -365,7 +365,10 @@ suspend fun crearPartido(idComp: String, idLocal: String, idVisitante: String, f
             "golesVisitante" to 0,
             "estado" to "nuevo",
             "fecha" to fecha,
-            "hora" to hora
+            "hora" to hora,
+            "visitas" to 0,
+            "minutos" to 0,
+            "ganador" to ""
         )
 
         // Guarda el nuevo partido en la colección "partidos"
