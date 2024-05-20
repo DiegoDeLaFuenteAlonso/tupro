@@ -3,8 +3,10 @@ package com.diego.tupro.screenPrincipal
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,11 +47,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.ui.theme.TuproTheme
 import androidx.compose.material.icons.filled.SavedSearch
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import com.diego.tupro.Constantes
 import com.google.firebase.auth.FirebaseAuth
 import java.util.Locale
@@ -163,7 +170,7 @@ fun BarraInferior(navController: NavController, i: Int) {
     }
 
     NavigationBar {
-        items.forEachIndexed() { index, item ->
+        items.forEachIndexed { index, item ->
             NavigationBarItem(
                 icon = {
                     Icon(imageVector = if (index == selectedItemIndex){item.selecIcon} else item.unselecIcon, contentDescription = item.titulo)
@@ -175,6 +182,95 @@ fun BarraInferior(navController: NavController, i: Int) {
                     navController.navigate("item_" + item.titulo.lowercase())
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: NavController) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        items(listaPartidos) { partido ->
+            // card
+            OutlinedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 15.dp),
+                shape = RoundedCornerShape(Constantes.redondeoBoton),
+                onClick = { navController.navigate("screen_partido") }
+
+            ) {
+                // competicion
+                Row(
+                    Modifier
+                        .background(colorScheme.surface)
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, top = 10.dp, bottom = 4.dp, end = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(partido.competicion)
+                    Text(if (partido.estado == "enJuego") partido.minutos else "")
+                    Text(if (partido.estado != "nuevo") partido.estado else "")
+                }
+
+                HorizontalDivider(
+                    color = colorScheme.outline,
+                    thickness = 0.dp,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+                )
+
+                Row(
+                    Modifier
+                        .background(colorScheme.surface)
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 20.dp, start = 25.dp, end = 25.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // local
+                    Box(
+                        Modifier
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            partido.local,
+                            textAlign = TextAlign.Center,
+                            fontSize = 18.sp,
+                            color = colorScheme.onSurface
+                        )
+                    }
+                    // hora
+                    Box(
+                        Modifier
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = partido.hora,
+                            textAlign = TextAlign.Center,
+                            fontSize = 21.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorScheme.primary,
+                            style = TextStyle(textAlign = TextAlign.Center)
+                        )
+                    }
+                    // visitante
+                    Box(
+                        Modifier
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            partido.visitante,
+                            textAlign = TextAlign.Center,
+                            fontSize = 18.sp,
+                            color = colorScheme.onSurface
+                        )
+                    }
+                }
+            }
         }
     }
 }

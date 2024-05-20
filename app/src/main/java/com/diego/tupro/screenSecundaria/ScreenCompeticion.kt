@@ -46,13 +46,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,9 +65,13 @@ import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
 import com.diego.tupro.screenPrincipal.Comp
+import com.diego.tupro.screenPrincipal.DibujarPartidos
+import com.diego.tupro.screenPrincipal.Partido
 import com.diego.tupro.screenPrincipal.TabItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -184,6 +191,13 @@ fun ScreenCompeticion(
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavController, comp: Comp) {
+    val isLoadingPartido = remember { mutableStateOf(true) }
+    val partidosComp = remember { mutableStateListOf<Partido>() }
+
+    LaunchedEffect(comp.idDocumento) {
+        partidosComp.addAll(getPartidosComp(comp.idDocumento))
+        isLoadingPartido.value = false
+    }
 
     Column(
         modifier = Modifier
@@ -265,6 +279,39 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                 .fillMaxWidth()
         ) { index ->
             if (index == 0) {
+                if(isLoadingPartido.value){
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ){
+                        CircularProgressIndicator()
+                    }
+                }
+                else if(partidosComp.isEmpty()){
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ){
+                        Text("Esta competición aún no tiene\n ningún partido",
+                            fontSize = 22.sp,
+                            color = colorScheme.secondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                else{
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ){
+                        DibujarPartidos(partidosComp, navController)
+                    }
+                }
+            } else if (index == 1) {
                 val lista = listOf(
                     ItemClasificacion("Equipo 1", 10, 5, 3, 1, 1, 8, 4),
                     ItemClasificacion("Equipo 2", 9, 5, 3, 0, 2, 7, 5),
@@ -291,12 +338,54 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                     }
                     TablaClasificacion(lista)
                 }
-
-            } else if (index == 1) {
-                /*TODO*/
             }
         }
     }
+}
+
+suspend fun getPartidosComp(idEquipo: String): SnapshotStateList<Partido> {
+    val db = Firebase.firestore
+    val partidos = mutableStateListOf<Partido>()
+
+    // Realiza una consulta a la colección "partidos"
+    val partidosSnapshot = db.collection("partidos")
+        .whereEqualTo("idComp", idEquipo)
+        .get()
+        .await()
+
+    for (partidoDocument in partidosSnapshot.documents) {
+        val idComp = partidoDocument.getString("idComp") ?: "eliminado"
+        val idLocal = partidoDocument.getString("idLocal") ?: "eliminado"
+        val idVisitante = partidoDocument.getString("idVisitante") ?: "eliminado"
+        val idCreador = partidoDocument.getString("creador") ?: "eliminado"
+
+        // Realiza consultas a las colecciones "competiciones" y "equipos"
+        val competicionDocument = db.collection("competiciones").document(idComp).get().await()
+        val localDocument = db.collection("equipos").document(idLocal).get().await()
+        val visitanteDocument = db.collection("equipos").document(idVisitante).get().await()
+        val creadorDocument = db.collection("users").document(idCreador).get().await()
+
+        // Crea el objeto Partido
+        val partido = Partido(
+            idPatido = partidoDocument.id,
+            competicion = competicionDocument.getString("competicion") ?: "eliminado",
+            local = localDocument.getString("equipo") ?: "eliminado",
+            visitante = visitanteDocument.getString("equipo") ?: "eliminado",
+            fecha = partidoDocument.getString("fecha") ?: "",
+            hora = partidoDocument.getString("hora") ?: "",
+            estado = partidoDocument.getString("estado") ?: "",
+            golesLocal = partidoDocument.getLong("golesLocal").toString() ?: "",
+            golesVisitante = partidoDocument.getLong("golesVisitante").toString() ?: "",
+            creador = creadorDocument.getString("username") ?: "eliminado",
+            minutos = partidoDocument.getLong("minutos").toString() ?: "",
+            ganador = partidoDocument.getString("ganador") ?: ""
+        )
+
+        // Añade el objeto Partido a la lista
+        partidos += partido
+    }
+
+    return partidos
 }
 
 @Composable

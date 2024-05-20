@@ -1,8 +1,6 @@
 package com.diego.tupro.screenPrincipal
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -10,15 +8,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedButton
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -26,42 +24,37 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
+import com.diego.tupro.ui.theme.TuproTheme
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ItemInicio(navController: NavController) {
     Scaffold(
         topBar = {
-            Column {
-                BarraSuperior("")
-
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
-                ) {
-                    FilaInicio()
-                }
-                HorizontalDivider(
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp)
-                )
-            }
+            BarraSuperior("")
         },
         bottomBar = { BarraInferior(navController = navController, 0) }
 
@@ -73,154 +66,183 @@ fun ItemInicio(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BodyContentInicio(padding: PaddingValues, navController: NavController) {
-    // Lista de textos para los botones
-    // val listaDeBotones = listOf("Botón 1", "Botón 2", "Botón 3", "Botón 4", "Botón 5", "Botón 6", "Botón 7", "Botón 8", "Botón 9")
-    val partidos = listOf(
-        Partido("Hola", "Hola", "Hola", "30/02/2024", "Hola", null, null),
-        Partido("La liga", "Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("Hola", "Hola", "Hola", "30/02/2024", "Hola", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "21:00", null, null),
-        Partido("La liga", "Real Madrid", "Barcelona", "30/02/2024", "3 - 2", null, null)
-    )
-    LazyColumn(
+    val isLoading = remember { mutableStateOf(true) }
+    val partidos = remember { mutableStateListOf<Partido>() }
+    val fecha = remember { mutableStateOf(LocalDate.now()) }
+
+    val openDialogFecha = remember { mutableStateOf(false) }
+    val stateFecha = rememberDatePickerState()
+
+    LaunchedEffect (fecha.value){
+        isLoading.value = true
+        partidos.clear()
+        partidos.addAll(getPartidosPorFecha(fecha.value.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), partidos))
+        isLoading.value = false
+    }
+
+    if (openDialogFecha.value){
+        DatePickerDialog(
+            onDismissRequest = {
+                openDialogFecha.value = false
+            },
+            confirmButton = {
+                Button(onClick = {
+                    openDialogFecha.value = false
+                    stateFecha.selectedDateMillis?.let { millis ->
+                        fecha.value = Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate()
+                    }
+                }) {
+                    Text(text = "Confirmar")
+                }
+            }
+        ) {
+            DatePicker(state = stateFecha)
+        }
+    }
+
+    Column(
         modifier = Modifier
-            .fillMaxSize()
             .padding(padding)
+            .fillMaxSize()
     ) {
-        items(partidos) { partido ->
-            // card
-            ElevatedCard(
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+        ) {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 15.dp),
-                shape = RoundedCornerShape(Constantes.redondeoBoton),
-                elevation = CardDefaults.cardElevation(2.dp),
-                onClick = { navController.navigate("screen_partido") }
-
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // competicion
-                Row(
-                    Modifier
-                        .background(colorScheme.surface)
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, top = 10.dp, bottom = 4.dp, end = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                IconButton(onClick = { fecha.value = fecha.value.minusDays(1) }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        // tint = colorScheme.onSecondaryContainer
+                    )
+                }
+                ElevatedButton(
+                    onClick = { openDialogFecha.value = true },
+                    shape = RoundedCornerShape(Constantes.redondeoBoton)
                 ) {
-                    Text(partido.competicion)
-                    Text(/*partido.estado*/ "tiempo")
-                    Text(/*partido.estado*/ "estado")
+                    Text(
+                        text = fecha.value.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        fontSize = 20.sp
+                    )
+                }
+                IconButton(onClick = { fecha.value = fecha.value.plusDays(1)}) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        // tint = colorScheme.onSecondaryContainer,
+                    )
                 }
 
-                HorizontalDivider(
-                    color = colorScheme.outline,
-                    thickness = 0.dp,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+            }
+        }
+        HorizontalDivider(
+            thickness = 1.dp,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp)
+        )
+        if(isLoading.value){
+            Row(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ){
+                CircularProgressIndicator()
+            }
+        }
+        else if(partidos.isEmpty()){
+            Row(
+                modifier = Modifier
+                    .fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ){
+                Text("No hay partidos\npara esta fecha",
+                    fontSize = 22.sp,
+                    color = colorScheme.secondary,
+                    textAlign = TextAlign.Center
                 )
-
-                Row(
-                    Modifier
-                        .background(colorScheme.surface)
-                        .fillMaxWidth()
-                        .padding(top = 16.dp, bottom = 20.dp, start = 25.dp, end = 25.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // local
-                    Box(
-                        Modifier
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            partido.local,
-                            textAlign = TextAlign.Center,
-                            fontSize = 18.sp,
-                            color = colorScheme.onSurface
-                        )
-                    }
-                    // hora
-                    Box(
-                        Modifier
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = partido.hora,
-                            textAlign = TextAlign.Center,
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colorScheme.primary,
-                            style = TextStyle(textAlign = TextAlign.Center)
-                        )
-                    }
-                    // visitante
-                    Box(
-                        Modifier
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            partido.visitante,
-                            textAlign = TextAlign.Center,
-                            fontSize = 18.sp,
-                            color = colorScheme.onSurface
-                        )
-                    }
-                }
+            }
+        }
+        else{
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+            ){
+                DibujarPartidos(partidos, navController)
             }
         }
     }
 }
 
+// Función para obtener partidos por fecha
+suspend fun getPartidosPorFecha(fecha: String, partidosExistentes: List<Partido>): List<Partido> {
+    val db = Firebase.firestore
+    val partidos = mutableListOf<Partido>()
 
-@Composable
-fun FilaInicio() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = { /* Haz algo aquí */ }) {
-            Icon(
-                imageVector = Icons.Filled.ArrowBack,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                // tint = colorScheme.onSecondaryContainer
-            )
-        }
-        ElevatedButton(
-            onClick = {/* haz algo */ },
-            // elevation = ButtonDefaults.buttonElevation(4.dp),
-            shape = RoundedCornerShape(Constantes.redondeoBoton)
-            // colors = ButtonDefaults.buttonColors(colorScheme.surfaceVariant)
-        ) {
-            Text(
-                text = LocalDate.now()
-                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), /*color = colorScheme.onSurfaceVariant,*/
-                fontSize = 20.sp
-            )
-        }
-        IconButton(onClick = { /* Haz algo*/ }) {
-            Icon(
-                imageVector = Icons.Filled.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                // tint = colorScheme.onSecondaryContainer,
-            )
-        }
+    // Obtiene el array "favCompeticiones" del usuario actual
+    val uid = Firebase.auth.currentUser?.uid
+    val userDocument = db.collection("users").document(uid ?: "").get().await()
+    val favCompeticiones = userDocument.get("favCompeticiones") as? List<String> ?: listOf()
+    val favEquipos = userDocument.get("favEquipos") as? List<String> ?: listOf()
 
+    // Realiza una consulta a la colección "partidos"
+    val partidosSnapshot = db.collection("partidos")
+        .whereEqualTo("fecha", fecha)
+        .get()
+        .await()
+
+    for (partidoDocument in partidosSnapshot.documents) {
+        val idComp = partidoDocument.getString("idComp") ?: "eliminado"
+        val idLocal = partidoDocument.getString("idLocal") ?: "eliminado"
+        val idVisitante = partidoDocument.getString("idVisitante") ?: "eliminado"
+
+        // Si la competición del partido no está en "favCompeticiones", salta a la siguiente iteración
+        if (idComp !in favCompeticiones && idLocal !in favEquipos && idVisitante !in favEquipos) continue
+
+        val idCreador = partidoDocument.getString("creador") ?: "eliminado"
+
+        // Realiza consultas a las colecciones "competiciones" y "equipos"
+        val competicionDocument = db.collection("competiciones").document(idComp).get().await()
+        val localDocument = db.collection("equipos").document(idLocal).get().await()
+        val visitanteDocument = db.collection("equipos").document(idVisitante).get().await()
+        val creadorDocument = db.collection("users").document(idCreador).get().await()
+
+        // Crea el objeto Partido
+        val partido = Partido(
+            idPatido = partidoDocument.id,
+            competicion = competicionDocument.getString("competicion") ?: "eliminado",
+            local = localDocument.getString("equipo") ?: "eliminado",
+            visitante = visitanteDocument.getString("equipo") ?: "eliminado",
+            fecha = partidoDocument.getString("fecha") ?: "",
+            hora = partidoDocument.getString("hora") ?: "",
+            estado = partidoDocument.getString("estado") ?: "",
+            golesLocal = partidoDocument.getLong("golesLocal").toString(),
+            golesVisitante = partidoDocument.getLong("golesVisitante").toString(),
+            creador = creadorDocument.getString("username") ?: "eliminado",
+            minutos = partidoDocument.getLong("minutos").toString(),
+            ganador = partidoDocument.getString("ganador") ?: ""
+        )
+
+        // Añade el objeto Partido a la lista solo si no está ya presente
+        if (partido !in partidosExistentes) {
+            partidos += partido
+        }
     }
+
+    return partidos
 }
 
-data class Partido(
+
+/*data class Partido(
     val competicion: String,
     val local: String,
     val visitante: String,
@@ -229,7 +251,9 @@ data class Partido(
     val estado: String?,
     val marcador: String?
 )
-/*data class Partido(
+*/
+data class Partido(
+    val idPatido: String,
     val competicion: String,
     val local: String,
     val visitante: String,
@@ -237,10 +261,11 @@ data class Partido(
     val hora: String,
     val estado: String,
     val golesLocal: String,
+    val golesVisitante: String,
     val creador: String,
     val minutos: String,
     val ganador: String
-)*/
+)
 
 @Preview(showSystemUi = true)
 @Composable
