@@ -101,7 +101,7 @@ fun BodyContentPerfil(
     val consultasID = remember { mutableStateListOf(1) }
     val numeroConsultasNombre = 1
     val numeroConsultasID = 1
-    val maxEquipos = remember { mutableIntStateOf(2) }
+    val maxEquipos = remember { mutableIntStateOf(30) }
     var botonesActivos by remember { mutableStateOf(true) }
 
     Column(

@@ -15,8 +15,10 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.CircularProgressIndicator
@@ -118,7 +120,7 @@ fun BodyContentScreenPerfil(paddingValues: PaddingValues, navController: NavCont
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabItems = listOf(
         TabItem("Equipos", Icons.Filled.Shield, Icons.Outlined.Shield),
-        TabItem("Competiciones", Icons.Filled.Groups, Icons.Outlined.Groups)
+        TabItem("Competiciones", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents)
     )
     val pagerState = rememberPagerState {
         tabItems.size

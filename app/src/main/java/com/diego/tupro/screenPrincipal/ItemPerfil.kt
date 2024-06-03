@@ -26,8 +26,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -438,13 +440,11 @@ fun eliminarCuenta(navController: NavController, context: Context) {
                     Constantes.reiniciarNavegacion(navController)
                 } else {
                     Log.d("Borrar_Cuenta", "Error al borrar la cuenta de usuario")
-                    // TODO: Manejar este error
                 }
             }
         }
         .addOnFailureListener { e ->
             Log.w("Borrar_Cuenta", "Error al borrar los datos de usuario en Firestore", e)
-            // TODO: Manejar este error
         }
 }
 
@@ -503,7 +503,7 @@ fun BodyContentPerfil(
         var selectedTabIndex by remember { mutableIntStateOf(0) }
         val tabItems = listOf(
             TabItem("Equipos", Icons.Filled.Shield, Icons.Outlined.Shield),
-            TabItem("Competiciones", Icons.Filled.Groups, Icons.Outlined.Groups)
+            TabItem("Competiciones", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents)
         )
         val pagerState = rememberPagerState {
             tabItems.size
