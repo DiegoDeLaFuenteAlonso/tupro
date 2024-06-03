@@ -47,8 +47,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.ui.theme.TuproTheme
 import androidx.compose.material.icons.filled.SavedSearch
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -129,10 +127,8 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
                         else if (it.tipo == "Usuario") {
                             val auth = FirebaseAuth.getInstance()
                             val uid = auth.currentUser?.uid
-                            if (uid != null){
-                                if (uid != it.idDocumento) navController.navigate("screen_perfil/${it.nombre}/${it.idDocumento}")
-                                else navController.navigate("item_perfil")
-                            }
+                            if (uid != it.idDocumento) navController.navigate("screen_perfil/${it.nombre}/${it.idDocumento}")
+                            else navController.navigate("item_perfil")
                         }
                     }
             )
@@ -199,7 +195,7 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 15.dp),
                 shape = RoundedCornerShape(Constantes.redondeoBoton),
-                onClick = { navController.navigate("screen_partido") }
+                onClick = { navController.navigate("screen_partido/${partido.idPartido}/${partido.creador}") }
 
             ) {
                 // competicion
@@ -211,8 +207,12 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(partido.competicion)
-                    Text(if (partido.estado == "enJuego") partido.minutos else "")
-                    Text(if (partido.estado != "nuevo") partido.estado else "")
+                    when (partido.estado) {
+                        "nuevo" -> Text(partido.fecha)
+                        "finalizado" -> {}
+                        else -> Text(partido.minutos + "'")
+                    }
+                    if (partido.estado != "nuevo" && partido.estado != "enJuego") Text(partido.estado)
                 }
 
                 HorizontalDivider(
@@ -248,7 +248,7 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = partido.hora,
+                            text = if (partido.estado != "nuevo") partido.golesLocal + " - " + partido.golesVisitante else partido.hora,
                             textAlign = TextAlign.Center,
                             fontSize = 21.sp,
                             fontWeight = FontWeight.Bold,

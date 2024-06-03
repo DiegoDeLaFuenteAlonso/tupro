@@ -1,8 +1,10 @@
 package com.diego.tupro.screenSecundaria
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +19,10 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.SportsSoccer
 import androidx.compose.material.icons.twotone.SportsSoccer
 import androidx.compose.material3.AlertDialog
@@ -56,6 +58,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
+import com.diego.tupro.navigation.AppScreens
 import com.diego.tupro.screenPrincipal.DibujarColumnaItems
 import com.diego.tupro.screenPrincipal.DibujarPartidos
 import com.diego.tupro.screenPrincipal.Equipo
@@ -150,6 +153,7 @@ fun BodyContentEquipo(innerPadding: PaddingValues, navController: NavController,
     val isLoadingComp = remember { mutableStateOf(true) }
     val isLoadingPartido = remember { mutableStateOf(true) }
     val partidosEquipo = remember { mutableStateListOf<Partido>() }
+    val idCreador = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(equipo.idDocumento) {
         competiciones.addAll(getCompeticiones(equipo.idDocumento))
@@ -160,6 +164,10 @@ fun BodyContentEquipo(innerPadding: PaddingValues, navController: NavController,
         partidosEquipo.addAll(getPartidosLocal(equipo.idDocumento))
         partidosEquipo.addAll(getPartidosVisitante(equipo.idDocumento))
         isLoadingPartido.value = false
+    }
+
+    LaunchedEffect(equipo.creador) {
+        idCreador.value = getUsuario(equipo.creador)
     }
 
     Column(
@@ -173,7 +181,9 @@ fun BodyContentEquipo(innerPadding: PaddingValues, navController: NavController,
                 .padding(top = 15.dp, bottom = 20.dp),
             horizontalArrangement = Arrangement.Center
         ){
-            Column {
+            Column (
+                horizontalAlignment = Alignment.CenterHorizontally
+            ){
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.25f)
@@ -190,14 +200,23 @@ fun BodyContentEquipo(innerPadding: PaddingValues, navController: NavController,
                     )
                 }
                 Text(text = equipo.equipo + " #" + equipo.idDocumento)
-                Text(text = equipo.creador)
+                Text(
+                    text = equipo.creador,
+                    modifier = Modifier.clickable {
+                        idCreador.let {  }
+                        val auth = FirebaseAuth.getInstance()
+                        val uid = auth.currentUser?.uid
+                        if (uid != idCreador.value) navController.navigate("${AppScreens.ScreenPerfil.route}/${equipo.creador}/${idCreador.value}")
+                        else navController.navigate("item_perfil")
+                    }
+                )
             }
         }
         HorizontalDivider()
         var selectedTabIndex by remember { mutableIntStateOf(0) }
         val tabItems = listOf(
             TabItem("Partidos", Icons.TwoTone.SportsSoccer, Icons.Outlined.SportsSoccer),
-            TabItem("Competiciones", Icons.Filled.Groups, Icons.Outlined.Groups)
+            TabItem("Competiciones", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents)
         )
         val pagerState = rememberPagerState {
             tabItems.size
@@ -391,7 +410,7 @@ suspend fun getPartidosLocal(idEquipo: String): SnapshotStateList<Partido> {
 
         // Crea el objeto Partido
         val partido = Partido(
-            idPatido = partidoDocument.id,
+            idPartido = partidoDocument.id,
             competicion = competicionDocument.getString("competicion") ?: "eliminado",
             local = localDocument.getString("equipo") ?: "eliminado",
             visitante = visitanteDocument.getString("equipo") ?: "eliminado",
@@ -436,7 +455,7 @@ suspend fun getPartidosVisitante(idEquipo: String): SnapshotStateList<Partido> {
 
         // Crea el objeto Partido
         val partido = Partido(
-            idPatido = partidoDocument.id,
+            idPartido = partidoDocument.id,
             competicion = competicionDocument.getString("competicion") ?: "eliminado",
             local = localDocument.getString("equipo") ?: "eliminado",
             visitante = visitanteDocument.getString("equipo") ?: "eliminado",

@@ -190,76 +190,67 @@ suspend fun getPartidosPorFecha(fecha: String, partidosExistentes: List<Partido>
 
     // Obtiene el array "favCompeticiones" del usuario actual
     val uid = Firebase.auth.currentUser?.uid
-    val userDocument = db.collection("users").document(uid ?: "").get().await()
-    val favCompeticiones = userDocument.get("favCompeticiones") as? List<String> ?: listOf()
-    val favEquipos = userDocument.get("favEquipos") as? List<String> ?: listOf()
+    if (uid != null){
+        val userDocument = db.collection("users").document(uid ?: "").get().await()
+        val favCompeticiones = userDocument.get("favCompeticiones") as? List<String> ?: listOf()
+        val favEquipos = userDocument.get("favEquipos") as? List<String> ?: listOf()
 
-    // Realiza una consulta a la colección "partidos"
-    val partidosSnapshot = db.collection("partidos")
-        .whereEqualTo("fecha", fecha)
-        .get()
-        .await()
+        // Realiza una consulta a la colección "partidos"
+        val partidosSnapshot = db.collection("partidos")
+            .whereEqualTo("fecha", fecha)
+            .get()
+            .await()
 
-    for (partidoDocument in partidosSnapshot.documents) {
-        val idComp = partidoDocument.getString("idComp") ?: "eliminado"
-        val idLocal = partidoDocument.getString("idLocal") ?: "eliminado"
-        val idVisitante = partidoDocument.getString("idVisitante") ?: "eliminado"
+        for (partidoDocument in partidosSnapshot.documents) {
+            val idComp = partidoDocument.getString("idComp") ?: "eliminado"
+            val idLocal = partidoDocument.getString("idLocal") ?: "eliminado"
+            val idVisitante = partidoDocument.getString("idVisitante") ?: "eliminado"
 
-        // Si la competición del partido no está en "favCompeticiones", salta a la siguiente iteración
-        if (idComp !in favCompeticiones && idLocal !in favEquipos && idVisitante !in favEquipos) continue
+            // Si la competición del partido no está en "favCompeticiones", salta a la siguiente iteración
+            if (idComp !in favCompeticiones && idLocal !in favEquipos && idVisitante !in favEquipos) continue
 
-        val idCreador = partidoDocument.getString("creador") ?: "eliminado"
+            val idCreador = partidoDocument.getString("creador") ?: ""
 
-        // Realiza consultas a las colecciones "competiciones" y "equipos"
-        val competicionDocument = db.collection("competiciones").document(idComp).get().await()
-        val localDocument = db.collection("equipos").document(idLocal).get().await()
-        val visitanteDocument = db.collection("equipos").document(idVisitante).get().await()
-        val creadorDocument = db.collection("users").document(idCreador).get().await()
+            // Realiza consultas a las colecciones "competiciones" y "equipos"
+            val competicionDocument = db.collection("competiciones").document(idComp).get().await()
+            val localDocument = db.collection("equipos").document(idLocal).get().await()
+            val visitanteDocument = db.collection("equipos").document(idVisitante).get().await()
+            val creadorDocument = db.collection("users").document(idCreador).get().await()
 
-        // Crea el objeto Partido
-        val partido = Partido(
-            idPatido = partidoDocument.id,
-            competicion = competicionDocument.getString("competicion") ?: "eliminado",
-            local = localDocument.getString("equipo") ?: "eliminado",
-            visitante = visitanteDocument.getString("equipo") ?: "eliminado",
-            fecha = partidoDocument.getString("fecha") ?: "",
-            hora = partidoDocument.getString("hora") ?: "",
-            estado = partidoDocument.getString("estado") ?: "",
-            golesLocal = partidoDocument.getLong("golesLocal").toString(),
-            golesVisitante = partidoDocument.getLong("golesVisitante").toString(),
-            creador = creadorDocument.getString("username") ?: "eliminado",
-            minutos = partidoDocument.getLong("minutos").toString(),
-            ganador = partidoDocument.getString("ganador") ?: ""
-        )
+            // Crea el objeto Partido
+            val partido = Partido(
+                idPartido = partidoDocument.id,
+                competicion = competicionDocument.getString("competicion") ?: "eliminado",
+                local = localDocument.getString("equipo") ?: "eliminado",
+                visitante = visitanteDocument.getString("equipo") ?: "eliminado",
+                fecha = partidoDocument.getString("fecha") ?: "",
+                hora = partidoDocument.getString("hora") ?: "",
+                estado = partidoDocument.getString("estado") ?: "",
+                golesLocal = partidoDocument.getLong("golesLocal").toString(),
+                golesVisitante = partidoDocument.getLong("golesVisitante").toString(),
+                creador = creadorDocument.getString("username") ?: "eliminado",
+                minutos = partidoDocument.getLong("minutos").toString(),
+                ganador = partidoDocument.getString("ganador") ?: ""
+            )
 
-        // Añade el objeto Partido a la lista solo si no está ya presente
-        if (partido !in partidosExistentes) {
-            partidos += partido
+            // Añade el objeto Partido a la lista solo si no está ya presente
+            if (partido !in partidosExistentes) {
+                partidos += partido
+            }
         }
     }
-
     return partidos
 }
 
 
-/*data class Partido(
-    val competicion: String,
-    val local: String,
-    val visitante: String,
-    val fecha: String,
-    val hora: String,
-    val estado: String?,
-    val marcador: String?
-)
-*/
 data class Partido(
-    val idPatido: String,
+    val idPartido: String,
     val competicion: String,
     val local: String,
     val visitante: String,
     val fecha: String,
     val hora: String,
-    val estado: String,
+    var estado: String,
     val golesLocal: String,
     val golesVisitante: String,
     val creador: String,

@@ -182,14 +182,17 @@ fun BodyContentScreenSeleccionarFecha(
                     .weight(0.2f)
                     .fillMaxSize()
                     .padding(start = 50.dp, end = 50.dp, top = 20.dp, bottom = 30.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-            ){
-                Column {
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     val seleccionado = equipoLocal != null
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.3f)
+                            .fillMaxWidth(0.6f)
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(Constantes.redondeoBoton))
                             .background(if (seleccionado) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant)
@@ -199,7 +202,6 @@ fun BodyContentScreenSeleccionarFecha(
                                 shape = RoundedCornerShape(Constantes.redondeoBoton)
                             ),
                         contentAlignment = Alignment.Center
-
                     ) {
                         Text(
                             text = if (seleccionado) equipoLocal!!.codigo.uppercase() else "L",
@@ -212,11 +214,14 @@ fun BodyContentScreenSeleccionarFecha(
                         Text(text = equipoLocal!!.creador)
                     }
                 }
-                Column {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     val seleccionado = equipoVisitante != null
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.43f)
+                            .fillMaxWidth(0.6f)
                             .aspectRatio(1f)
                             .clip(RoundedCornerShape(Constantes.redondeoBoton))
                             .background(if (seleccionado) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant)
@@ -226,7 +231,6 @@ fun BodyContentScreenSeleccionarFecha(
                                 shape = RoundedCornerShape(Constantes.redondeoBoton)
                             ),
                         contentAlignment = Alignment.Center
-
                     ) {
                         Text(
                             text = if (seleccionado) equipoVisitante!!.codigo.uppercase() else "V",

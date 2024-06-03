@@ -3,6 +3,7 @@ package com.diego.tupro.screenSecundaria
 import android.annotation.SuppressLint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,10 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.Equalizer
+import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Leaderboard
 import androidx.compose.material.icons.outlined.SportsSoccer
 import androidx.compose.material.icons.twotone.SportsSoccer
 import androidx.compose.material3.AlertDialog
@@ -64,6 +65,7 @@ import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
+import com.diego.tupro.navigation.AppScreens
 import com.diego.tupro.screenPrincipal.Comp
 import com.diego.tupro.screenPrincipal.DibujarPartidos
 import com.diego.tupro.screenPrincipal.Partido
@@ -109,32 +111,42 @@ fun ScreenCompeticion(
             esFav.value = !esFav.value
         }
     }
-    if(isLoadingInterfaz.value){
-        Box (
+    if (isLoadingInterfaz.value) {
+        Box(
             modifier = Modifier
                 .fillMaxSize(),
             contentAlignment = Alignment.Center,
-        ){
+        ) {
             CircularProgressIndicator()
         }
-    } else{
+    } else {
         Scaffold(
             topBar = {
-                Column{
+                Column {
                     TopAppBar(
                         title = {
-                            Text(text = "Competicion", color = colorScheme.primary, fontSize = 26.sp)
+                            Text(
+                                text = "Competicion",
+                                color = colorScheme.primary,
+                                fontSize = 26.sp
+                            )
                         },
                         navigationIcon = {
                             IconButton(
                                 onClick = { navController.popBackStack() }
                             ) {
-                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Atrás")
+                                Icon(
+                                    Icons.AutoMirrored.Rounded.ArrowBack,
+                                    contentDescription = "Atrás"
+                                )
                             }
                         },
                         actions = {
                             IconButton(
-                                onClick = { if(uid != null) actualizarFav.value = true else showDialog.value = true}
+                                onClick = {
+                                    if (uid != null) actualizarFav.value =
+                                        true else showDialog.value = true
+                                }
                             ) {
                                 Icon(
                                     if (esFav.value) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -170,7 +182,7 @@ fun ScreenCompeticion(
                     }
                 }
             },
-        ) {innerPadding ->
+        ) { innerPadding ->
             BodyContentCompeticion(innerPadding, navController, comp)
         }
         if (showDialog.value) {
@@ -193,10 +205,22 @@ fun ScreenCompeticion(
 fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavController, comp: Comp) {
     val isLoadingPartido = remember { mutableStateOf(true) }
     val partidosComp = remember { mutableStateListOf<Partido>() }
+    val buscarUsuario = remember { mutableStateOf(false) }
+    val idCreador = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(comp.idDocumento) {
         partidosComp.addAll(getPartidosComp(comp.idDocumento))
         isLoadingPartido.value = false
+    }
+    LaunchedEffect(buscarUsuario) {
+        if (buscarUsuario.value) {
+            getUsuario(comp.creador).let { navController.navigate("${AppScreens.ScreenPerfil.route}/${comp.creador}/${it}") }
+            buscarUsuario.value = false
+        }
+    }
+
+    LaunchedEffect(comp.creador) {
+        idCreador.value = getUsuario(comp.creador)
     }
 
     Column(
@@ -210,7 +234,9 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                 .padding(top = 15.dp, bottom = 20.dp),
             horizontalArrangement = Arrangement.Center
         ) {
-            Column {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.25f)
@@ -227,7 +253,16 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                     )
                 }
                 Text(text = comp.nombre + " #" + comp.idDocumento)
-                Text(text = comp.creador)
+                Text(
+                    text = comp.creador,
+                    modifier = Modifier.clickable {
+                        idCreador.let {  }
+                        val auth = FirebaseAuth.getInstance()
+                        val uid = auth.currentUser?.uid
+                        if (uid != idCreador.value) navController.navigate("${AppScreens.ScreenPerfil.route}/${comp.creador}/${idCreador.value}")
+                        else navController.navigate("item_perfil")
+                    }
+                )
             }
         }
         HorizontalDivider()
@@ -235,7 +270,7 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
         var selectedTabIndex by remember { mutableIntStateOf(0) }
         val tabItems = listOf(
             TabItem("Partidos", Icons.TwoTone.SportsSoccer, Icons.Outlined.SportsSoccer),
-            TabItem("Clasificación", Icons.Filled.Equalizer, Icons.Outlined.Equalizer)
+            TabItem("Clasificación", Icons.Filled.Leaderboard, Icons.Outlined.Leaderboard)
         )
         val pagerState = rememberPagerState {
             tabItems.size
@@ -279,35 +314,34 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                 .fillMaxWidth()
         ) { index ->
             if (index == 0) {
-                if(isLoadingPartido.value){
+                if (isLoadingPartido.value) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
-                    ){
+                    ) {
                         CircularProgressIndicator()
                     }
-                }
-                else if(partidosComp.isEmpty()){
+                } else if (partidosComp.isEmpty()) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
-                    ){
-                        Text("Esta competición aún no tiene\n ningún partido",
+                    ) {
+                        Text(
+                            "Esta competición aún no tiene\n ningún partido",
                             fontSize = 22.sp,
                             color = colorScheme.secondary,
                             textAlign = TextAlign.Center
                         )
                     }
-                }
-                else{
+                } else {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                    ){
+                    ) {
                         DibujarPartidos(partidosComp, navController)
                     }
                 }
@@ -321,12 +355,12 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                 Column(
                     Modifier.padding(10.dp)
                 ) {
-                    Row (
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
-                    ){
+                    ) {
                         Text(text = "Equipo")
                         Text(text = "Puntos")
                         Text(text = "PJ")
@@ -367,7 +401,7 @@ suspend fun getPartidosComp(idEquipo: String): SnapshotStateList<Partido> {
 
         // Crea el objeto Partido
         val partido = Partido(
-            idPatido = partidoDocument.id,
+            idPartido = partidoDocument.id,
             competicion = competicionDocument.getString("competicion") ?: "eliminado",
             local = localDocument.getString("equipo") ?: "eliminado",
             visitante = visitanteDocument.getString("equipo") ?: "eliminado",
@@ -401,10 +435,22 @@ fun TablaClasificacion(lista: List<ItemClasificacion>) {
             ) {
                 Text(text = item.nombre, color = colorScheme.onSecondaryContainer)
                 Text(text = item.puntos.toString(), color = colorScheme.onSecondaryContainer)
-                Text(text = item.partidosJugados.toString(), color = colorScheme.onSecondaryContainer)
-                Text(text = item.partidosGanados.toString(), color = colorScheme.onSecondaryContainer)
-                Text(text = item.partidosEmpatados.toString(), color = colorScheme.onSecondaryContainer)
-                Text(text = item.partidosPerdidos.toString(), color = colorScheme.onSecondaryContainer)
+                Text(
+                    text = item.partidosJugados.toString(),
+                    color = colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = item.partidosGanados.toString(),
+                    color = colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = item.partidosEmpatados.toString(),
+                    color = colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = item.partidosPerdidos.toString(),
+                    color = colorScheme.onSecondaryContainer
+                )
                 Text(text = item.golesFavor.toString(), color = colorScheme.onSecondaryContainer)
                 Text(text = item.golesContra.toString(), color = colorScheme.onSecondaryContainer)
             }
@@ -419,7 +465,8 @@ suspend fun actualizarFavComp(idComp: String, uid: String?) = withContext(Dispat
         val userDocumentRef = db.collection("users").document(uid)
 
         val userDocument = userDocumentRef.get().await()
-        val favComp = userDocument.get("favCompeticiones") as? MutableList<String> ?: mutableListOf()
+        val favComp =
+            userDocument.get("favCompeticiones") as? MutableList<String> ?: mutableListOf()
 
         if (idComp in favComp) {
             favComp.remove(idComp)
@@ -460,6 +507,21 @@ suspend fun limpiarEquiposBorrados(compId: String) {
 
     compDocumentRef.update("equipos", equiposComp).await()
 }
+
+suspend fun getUsuario(username: String): String? {
+    val db = Firebase.firestore
+    val usersRef = db.collection("users")
+    val querySnapshot = usersRef.whereEqualTo("username", username).get().await()
+
+    // Si hay un resultado, devuelve el ID del primer documento
+    if (!querySnapshot.isEmpty) {
+        return querySnapshot.documents[0].id
+    }
+
+    // Si no hay resultados, devuelve null
+    return null
+}
+
 
 data class ItemClasificacion(
     val nombre: String,

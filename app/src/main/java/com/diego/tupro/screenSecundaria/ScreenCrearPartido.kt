@@ -111,11 +111,14 @@ fun BodyContentScreenCrearPartido(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 val seleccionado = equipoLocal != null
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.3f)
+                        .fillMaxWidth(0.6f)
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(Constantes.redondeoBoton))
                         .background(if (seleccionado) colorScheme.secondaryContainer else colorScheme.surfaceVariant)
@@ -140,11 +143,14 @@ fun BodyContentScreenCrearPartido(
                 }
             }
 
-            Column {
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 val seleccionado = equipoVisitante != null
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.43f)
+                        .fillMaxWidth(0.6f)
                         .aspectRatio(1f)
                         .clip(RoundedCornerShape(Constantes.redondeoBoton))
                         .background(if (seleccionado) colorScheme.secondaryContainer else colorScheme.surfaceVariant)

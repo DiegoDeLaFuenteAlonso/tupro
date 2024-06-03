@@ -50,9 +50,19 @@ fun AppNavigation() {
                 mostrarBarra.value = true
                 ItemPerfil(navController)
             }
-            composable(AppScreens.ScreenPartido.route) {
-                mostrarBarra.value = false
-                ScreenPartido(navController)
+            composable(
+                route = AppScreens.ScreenPartido.route + "/{id}/{creador}",
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType },
+                    navArgument("creador") { type = NavType.StringType }
+                )
+            ) {
+                val id = it.arguments?.getString("id")
+                val creador = it.arguments?.getString("creador")
+                if (id != null && creador != null) {
+                    mostrarBarra.value = false
+                    ScreenPartido(navController, id, creador)
+                }
             }
             composable(AppScreens.ScreenSesion.route) {
                 mostrarBarra.value = false
@@ -99,15 +109,9 @@ fun AppNavigation() {
                 val creador = backStackEntry.arguments?.getString("creador")
                 val equipo = backStackEntry.arguments?.getString("equipo")
                 val id = backStackEntry.arguments?.getString("id")
-                if (codigo != null) {
-                    if (creador != null) {
-                        if (equipo != null) {
-                            if (id != null) {
-                                mostrarBarra.value = false
-                                ScreenEquipo(navController, codigo, creador, equipo, id)
-                            }
-                        }
-                    }
+                if (codigo != null && creador != null && equipo != null && id != null) {
+                    mostrarBarra.value = false
+                    ScreenEquipo(navController, codigo, creador, equipo, id)
                 }
             }
             composable(
@@ -123,15 +127,9 @@ fun AppNavigation() {
                 val creador = backStackEntry.arguments?.getString("creador")
                 val competicion = backStackEntry.arguments?.getString("competicion")
                 val id = backStackEntry.arguments?.getString("id")
-                if (codigo != null) {
-                    if (creador != null) {
-                        if (competicion != null) {
-                            if (id != null) {
-                                mostrarBarra.value = false
-                                ScreenCompeticion(navController, codigo, creador, competicion, id)
-                            }
-                        }
-                    }
+                if (codigo != null && creador != null && competicion != null && id != null) {
+                    mostrarBarra.value = false
+                    ScreenCompeticion(navController, codigo, creador, competicion, id)
                 }
             }
             composable(
@@ -143,11 +141,9 @@ fun AppNavigation() {
             ) { backStackEntry ->
                 val nombre = backStackEntry.arguments?.getString("nombre")
                 val id = backStackEntry.arguments?.getString("id")
-                if (nombre != null) {
-                    if (id != null) {
-                        mostrarBarra.value = false
-                        ScreenPerfil(navController, nombre, id)
-                    }
+                if (nombre != null && id != null) {
+                    mostrarBarra.value = false
+                    ScreenPerfil(navController, nombre, id)
                 }
             }
             composable(AppScreens.ItemFavoritos.route) {
