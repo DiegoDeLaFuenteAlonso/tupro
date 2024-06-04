@@ -1,6 +1,7 @@
 package com.diego.tupro.screenSecundaria
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,16 +51,20 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,6 +79,8 @@ import com.diego.tupro.screenPrincipal.Partido
 import com.diego.tupro.screenPrincipal.TabItem
 import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,34 +90,39 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
     val sessionManager = SessionManager(LocalContext.current)
     val user = sessionManager.getUserDetails()
 
-    var equipoLocal by remember { mutableStateOf(Equipo("LBFS", "la bañeza", "1", "")) }
-    var equipoVisitante by remember { mutableStateOf(Equipo("LBFS", "la bañeza", "1", "")) }
-    var comp by remember { mutableStateOf(Comp("LBFS", "la bañeza", "1", "")) }
-    var partido by remember { mutableStateOf(Partido("LBFS", "la bañeza", "1", "", "", "", "", "", "", "", "", "")) }
+    var equipoLocal by remember { mutableStateOf(Equipo("", "", "", "")) }
+    var equipoVisitante by remember { mutableStateOf(Equipo("", "", "", "")) }
+    var comp by remember { mutableStateOf(Comp("", "", "", "")) }
+    val partido = remember { mutableStateOf(Partido("", "", "", "", "", "", "", "", "", "", "", "")) }
 
 
     var expanded by remember { mutableStateOf(false) }
     var expandedEdit by remember { mutableStateOf(false) }
     var openDialog by remember { mutableStateOf(false) }
-    var isLoadingPartido by remember { mutableStateOf(true) }
+    val isLoadingPartido = remember { mutableStateOf(true) }
 
     var actualizarEstado by remember { mutableStateOf(false) }
     var nuevoEstado by remember { mutableStateOf("") }
+    var resultado by remember { mutableStateOf("") }
 
-    LaunchedEffect(isLoadingPartido) {
-        if (isLoadingPartido){
-            partido = getPartidoPorId(idPartido)
+    LaunchedEffect(Unit) {
+        escucharCambiosPartido(idPartido, partido, isLoadingPartido)
+    }
+
+    LaunchedEffect(partido.value) {
+        if (partido.value.idPartido != "") {
+            isLoadingPartido.value = true
             comp = getCompeticionPorId(idPartido)
             equipoLocal = getEquipoPorId(idPartido, true)
             equipoVisitante = getEquipoPorId(idPartido, false)
-            isLoadingPartido = false
+            isLoadingPartido.value = false
         }
     }
 
     LaunchedEffect(actualizarEstado) {
         if (actualizarEstado) {
-            funIniciarPartido(partido.idPartido, nuevoEstado)
-            isLoadingPartido = true
+            funActualizarEstadoPartido(partido.value.idPartido, nuevoEstado, resultado)
+            //isLoadingPartido = true
             actualizarEstado = false
         }
     }
@@ -119,15 +131,15 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
         topBar = {
             Column {
                 TopAppBar(
-                    title = { if (!isLoadingPartido) Text(equipoLocal.codigo + " - " + equipoVisitante.codigo) else Text("")},
+                    title = { if (!isLoadingPartido.value) Text(equipoLocal.codigo + " - " + equipoVisitante.codigo) else Text("")},
                     navigationIcon = {
                         IconButton(onClick = { navController.popBackStack() }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "atrás")
                         }
                     },
                     actions = {
-                        if (!isLoadingPartido && user["username"] == creadorNombre) {
-                            if (partido.estado != "nuevo") {
+                        if (!isLoadingPartido.value && user["username"] == creadorNombre) {
+                            if (partido.value.estado != "nuevo") {
                                 IconButton(onClick = { expandedEdit = true }) {
                                     Icon(Icons.Filled.Edit, contentDescription = "editar partido")
                                 }
@@ -138,18 +150,21 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                     DropdownMenuItem(
                                         onClick = {
                                             expandedEdit = false
+                                            navController.navigate(  "${AppScreens.ScreenEvento.route}/${equipoLocal.codigo}/${equipoVisitante.codigo}/${partido.value.idPartido}/${partido.value.minutos}")
                                         },
                                         text = { Text(text = "Añadir evento") }
                                     )
                                     DropdownMenuItem(
                                         onClick = {
                                             expandedEdit = false
+                                            navController.navigate( "${AppScreens.ScreenNarracion.route}/${equipoLocal.codigo}/${equipoVisitante.codigo}/${partido.value.idPartido}/${partido.value.minutos}")
                                         },
                                         text = { Text(text = "Añadir narración") }
                                     )
                                     DropdownMenuItem(
                                         onClick = {
                                             expandedEdit = false
+                                            navController.navigate( "${AppScreens.ScreenEditarMarcador.route}/${equipoLocal.codigo}/${equipoVisitante.codigo}/${partido.value.idPartido}/${partido.value.minutos}/${partido.value.golesLocal}/${partido.value.golesVisitante}/${partido.value.estado == "enJuego"}/${partido.value.estado == "finalizado"}")
                                         },
                                         text = { Text(text = "Editar marcador") }
                                     )
@@ -163,8 +178,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false }
                             ) {
-                                if (partido.estado != "finalizado") {
-                                    if (partido.estado == "nuevo") {
+                                if (partido.value.estado != "finalizado") {
+                                    if (partido.value.estado == "nuevo") {
                                         DropdownMenuItem(
                                             onClick = {
                                                 expanded = false
@@ -174,7 +189,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                             text = { Text(text = "Iniciar partido") }
                                         )
                                     }
-                                    if (partido.estado == "enJuego"){
+                                    if (partido.value.estado == "enJuego"){
                                         DropdownMenuItem(
                                             onClick = {
                                                 expanded = false
@@ -192,7 +207,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                             text = { Text(text = "Descanso") }
                                         )
                                     }
-                                    if (partido.estado == "descanso" || partido.estado == "detenido"){
+                                    if (partido.value.estado == "descanso" || partido.value.estado == "detenido"){
                                         DropdownMenuItem(
                                             onClick = {
                                                 expanded = false
@@ -202,11 +217,13 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                             text = { Text(text = "Reanudar") }
                                         )
                                     }
-                                    if (partido.estado != "nuevo"){
+                                    if (partido.value.estado != "nuevo"){
                                         DropdownMenuItem(
                                             onClick = {
                                                 expanded = false
                                                 nuevoEstado = "finalizado"
+                                                resultado =
+                                                    if (partido.value.golesLocal > partido.value.golesVisitante) "local" else if (partido.value.golesLocal < partido.value.golesVisitante) "visitante" else "empate"
                                                 actualizarEstado = true
                                             },
                                             text = { Text(text = "Finalizar") }
@@ -258,7 +275,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
             }
         }
     ) {
-        BodyContentPartido(it, equipoLocal, equipoVisitante, comp, partido, isLoadingPartido, navController)
+        BodyContentPartido(it, equipoLocal, equipoVisitante, comp, partido.value, isLoadingPartido.value, navController, idPartido)
     }
 }
 
@@ -272,11 +289,16 @@ fun BodyContentPartido(
     comp: Comp,
     partido: Partido,
     isLoadingPartido: Boolean,
-    navController: NavController
+    navController: NavController,
+    idPartido: String
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var fila1 = partido.hora
     var fila2 = partido.fecha
+    val comentarios = remember { mutableStateListOf<Comentario>() }
+    val isLoadingComentarios = remember { mutableStateOf(true) }
+    val eventos = remember { mutableStateListOf<Evento>() }
+    val isLoadingEventos = remember { mutableStateOf(true) }
 
     if (partido.estado != "nuevo") {
         fila1 = partido.golesLocal + " - " + partido.golesVisitante
@@ -284,6 +306,14 @@ fun BodyContentPartido(
         if (partido.estado != "enJuego") {
             fila2 = partido.estado
         }
+    }
+
+    LaunchedEffect(Unit) {
+        escucharCambiosNarraciones(idPartido, comentarios, isLoadingComentarios)
+    }
+
+    LaunchedEffect(Unit) {
+        escucharCambiosEventos(idPartido, eventos, isLoadingEventos)
     }
 
     Column(
@@ -362,10 +392,12 @@ fun BodyContentPartido(
                         fontSize = 26.sp,
                         modifier = Modifier.padding(bottom = 10.dp)
                     )
-                    Text(text = fila2, fontSize = 18.sp)
+                    Text(text = fila2, fontSize = 18.sp, modifier = Modifier.padding(bottom = 8.dp))
+                    Text(text = partido.fecha, fontSize = 14.sp)
                 }
                 Column(
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
                         .clickable {
                             navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoVisitante.codigo}/${equipoVisitante.creador}/${equipoVisitante.equipo}/${equipoVisitante.idDocumento}")
                         },
@@ -450,56 +482,59 @@ fun BodyContentPartido(
                     .fillMaxSize()
             ) { index ->
                 if (index == 0) {
-                    val eventosDePrueba = listOf(
-                        Evento("1", "Gol", "jugador", "15'", "local", "gol"),
-                        Evento(
-                            "2",
-                            "Tarjeta amarilla",
-                            "jugador",
-                            "30'",
-                            "visitante",
-                            "tarjeta"
-                        ),
-                        Evento("3", "Gol", "12345678901234567890", "45'", "visitante", "gol"),
-                        Evento(
-                            "4",
-                            "Tarjeta roja",
-                            "12345678901234567890",
-                            "60'",
-                            "local",
-                            "cambio"
-                        )
-                    )
-
-                    MostrarEventos(eventosDePrueba)
+                    if(isLoadingEventos.value){
+                        Box (
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ){
+                            CircularProgressIndicator()
+                        }
+                    }
+                    else if(eventos.isEmpty()){
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Aún no existen eventos\nen este partido",
+                                fontSize = 22.sp,
+                                color = colorScheme.secondary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else{
+                        MostrarEventos(eventos)
+                    }
                 } else if (index == 1) {
-                    val comentariosDePrueba = listOf(
-                        Comentario(
-                            "1",
-                            "Gol del equipo local",
-                            "El equipo local ha marcado un gol espectacular",
-                            "15'"
-                        ),
-                        Comentario(
-                            "2",
-                            "Tarjeta amarilla",
-                            "El jugador del equipo visitante ha recibido una tarjeta amarilla",
-                            "30'"
-                        ),
-                        Comentario(
-                            "3",
-                            "Gol del equipo visitante",
-                            "El equipo visitante ha empatado el partido con un golazo",
-                            "45'"
-                        ),
-                        Comentario(
-                            "4",
-                            "Tarjeta roja",
-                            "Desafortunadamente, un jugador del equipo local ha sido expulsado",
-                            "60'"
-                        )
-                    )
-                    MostrarComentarios(comentariosDePrueba)
+                    if(isLoadingComentarios.value){
+                        Box (
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center,
+                        ){
+                            CircularProgressIndicator()
+                        }
+                    }
+                    else if(comentarios.isEmpty()){
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "Aún no existen comentarios\nen este partido",
+                                fontSize = 22.sp,
+                                color = colorScheme.secondary,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else{
+                        MostrarComentarios(comentarios)
+                    }
                 }
             }
         }
@@ -634,24 +669,46 @@ fun MostrarComentarios(comentarios: List<Comentario>) {
     }
 }
 
-suspend fun getPartidoPorId(idPartido: String): Partido {
-    val db = FirebaseFirestore.getInstance()
-    val partidoDocument = db.collection("partidos").document(idPartido).get().await()
-    return Partido(
-        idPartido = partidoDocument.id,
-        competicion = partidoDocument.getString("idComp") ?: "eliminado",
-        local = partidoDocument.getString("idLocal") ?: "eliminado",
-        visitante = partidoDocument.getString("idVisitante") ?: "eliminado",
-        fecha = partidoDocument.getString("fecha") ?: "",
-        hora = partidoDocument.getString("hora") ?: "",
-        estado = partidoDocument.getString("estado") ?: "",
-        golesLocal = partidoDocument.getLong("golesLocal").toString(),
-        golesVisitante = partidoDocument.getLong("golesVisitante").toString(),
-        creador = partidoDocument.getString("creador") ?: "eliminado",
-        minutos = partidoDocument.getLong("minutos").toString(),
-        ganador = partidoDocument.getString("ganador") ?: ""
-    )
+fun escucharCambiosPartido(
+    idPartido: String,
+    partido: MutableState<Partido>,
+    isLoadingPartido: MutableState<Boolean>
+) {
+    isLoadingPartido.value = true
+    try {
+        val db = Firebase.firestore
+
+        db.collection("partidos").document(idPartido)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.w("ScreenParido", "listener cambios partido error", error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null && snapshot.exists()) {
+                    partido.value = Partido(
+                        idPartido = snapshot.id,
+                        competicion = snapshot.getString("idComp") ?: "eliminado",
+                        local = snapshot.getString("idLocal") ?: "eliminado",
+                        visitante = snapshot.getString("idVisitante") ?: "eliminado",
+                        fecha = snapshot.getString("fecha") ?: "",
+                        hora = snapshot.getString("hora") ?: "",
+                        estado = snapshot.getString("estado") ?: "",
+                        golesLocal = snapshot.getLong("golesLocal").toString(),
+                        golesVisitante = snapshot.getLong("golesVisitante").toString(),
+                        creador = snapshot.getString("creador") ?: "eliminado",
+                        minutos = snapshot.getLong("minutos").toString(),
+                        ganador = snapshot.getString("ganador") ?: ""
+                    )
+                }
+            }
+    } catch (e: Exception){
+        Log.w("ScreenParido", "error consulta partido", e)
+    } finally {
+        isLoadingPartido.value = false
+    }
 }
+
 
 suspend fun getEquipoPorId(idPartido: String, isLocal: Boolean): Equipo {
     var consulta = "idLocal"
@@ -691,11 +748,92 @@ suspend fun getCompeticionPorId(idPartido: String): Comp {
     )
 }
 
-suspend fun funIniciarPartido(idPartido: String, nuevoEstado: String) {
+suspend fun funActualizarEstadoPartido(idPartido: String, nuevoEstado: String, resultado: String) {
     val db = FirebaseFirestore.getInstance()
-    val myRef = db.collection("partidos").document(idPartido)
+    val ref = db.collection("partidos").document(idPartido)
 
-    myRef.update("estado", nuevoEstado).await()
+    val updates = hashMapOf<String, Any>("estado" to nuevoEstado)
+    if (resultado != "") updates["ganador"] = resultado
+
+    ref.update(updates).await()
+}
+
+fun escucharCambiosNarraciones(
+    idPartido: String,
+    comentarios: MutableList<Comentario>,
+    isLoadingComentarios: MutableState<Boolean>
+) {
+    isLoadingComentarios.value = true
+    try {
+        val db = Firebase.firestore
+
+        db.collection("narraciones")
+            .whereEqualTo("idPartido", idPartido)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.w("ScreenParido", "listener cambios narraciones error", error)
+                    return@addSnapshotListener
+                }
+
+                comentarios.clear()
+                if (value != null) {
+                    for (doc in value) {
+                        val comentario = Comentario(
+                            idComentario = doc.id,
+                            titulo = doc.getString("titulo") ?: "",
+                            texto = doc.getString("texto") ?: "",
+                            minuto = (doc.getLong("minuto")?.toString() + "'")
+                        )
+                        comentarios.add(comentario)
+                        comentarios.sortWith(compareBy { it.minuto.replace("'", "").toInt() })
+                    }
+                }
+            }
+    } catch (e: Exception){
+        Log.w("ScreenParido", "error consulta comentarios", e)
+    } finally {
+        isLoadingComentarios.value = false
+    }
+}
+
+fun escucharCambiosEventos(
+    idPartido: String,
+    eventos: MutableList<Evento>,
+    isLoadingEventos: MutableState<Boolean>
+) {
+    isLoadingEventos.value = true
+    try {
+        val db = Firebase.firestore
+
+        db.collection("eventos")
+            .whereEqualTo("idPartido", idPartido)
+            .addSnapshotListener { value, error ->
+                if (error != null) {
+                    Log.w("ScreenParido", "listener cambios eventos error", error)
+                    return@addSnapshotListener
+                }
+
+                eventos.clear()
+                if (value != null) {
+                    for (doc in value) {
+                        val evento = Evento(
+                            idEvento = doc.id,
+                            titulo = doc.getString("titulo") ?: "",
+                            texto = doc.getString("texto") ?: "",
+                            minuto = (doc.getLong("minuto")?.toString() + "'"),
+                            tipoEquipo = doc.getString("tipoEquipo") ?: "",
+                            tipoEvento = doc.getString("tipoEvento") ?: ""
+                        )
+                        eventos.add(evento)
+                        eventos.sortWith(compareBy { it.minuto.replace("'", "").toInt() })
+                    }
+                }
+            }
+    } catch (e: Exception){
+        Log.w("ScreenParido", "error consulta eventos", e)
+    } finally {
+        isLoadingEventos.value = false
+    }
 }
 
 data class Evento(
