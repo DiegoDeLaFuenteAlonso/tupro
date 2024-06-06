@@ -17,11 +17,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -37,21 +34,16 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.Constantes
-import com.diego.tupro.ui.theme.TuproTheme
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScreenEvento(navController: NavController, equipoLocal: String, equipoVisitante: String, idPartido: String, minuto: String) {
+fun ScreenEditarMarcador(navController: NavController, equipoLocal: String, equipoVisitante: String, idPartido: String, minuto: String, golesLocal: String, golesVisitante: String, enJuego: Boolean, finalizado: Boolean) {
     Scaffold(
         topBar = {
             Column {
@@ -67,45 +59,45 @@ fun ScreenEvento(navController: NavController, equipoLocal: String, equipoVisita
             }
         }
     ) {
-        BodyContentEvento(it, idPartido, minuto, navController)
+        BodyContentEditarMarcador(it, idPartido, minuto, golesLocal, golesVisitante, enJuego, navController, finalizado)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun BodyContentEvento(
+fun BodyContentEditarMarcador(
     paddingValues: PaddingValues,
     idPartido: String,
     minutoActual: String,
-    navController: NavController
+    golesLocal: String,
+    golesVisitante: String,
+    enJuego: Boolean,
+    navController: NavController,
+    finalizado: Boolean
 ) {
     var minuto by remember { mutableStateOf(minutoActual) }
-    var titulo by remember { mutableStateOf("") }
-    var texto by remember { mutableStateOf("") }
-    var nuevoEvento by remember { mutableStateOf(false) }
+    var golesL by remember { mutableStateOf(golesLocal) }
+    var golesV by remember { mutableStateOf(golesVisitante) }
+
+    var cambiarMarcador by remember { mutableStateOf(false) }
     var botonActivo by remember { mutableStateOf(true) }
-
-    val options = listOf("Gol", "Tarjeta", "Cambio")
-    var selectedOption by remember { mutableStateOf(options[0]) }
-
-    val optionsEquipo = listOf("Local", "Visitante")
-    var selectedOptionEquipo by remember { mutableStateOf(optionsEquipo[0]) }
 
     val focusManager = LocalFocusManager.current
     val (focusRequester1, focusRequester2, focusRequester3) = remember { FocusRequester.createRefs() }
 
-    LaunchedEffect(nuevoEvento) {
-        if (nuevoEvento) {
-            crearEvento(idPartido, minuto, titulo, texto, selectedOption.lowercase(), selectedOptionEquipo.lowercase())
-            if (selectedOption.lowercase() == "gol") {
-                sumarGol(idPartido, selectedOptionEquipo.lowercase() == "local")
+    LaunchedEffect(cambiarMarcador) {
+        if (cambiarMarcador) {
+            actualizarMarcador(idPartido, minuto, golesL, golesV)
+            if (finalizado) {
+                val ganador = if (golesL > golesV) "local" else if (golesL < golesV) "visitante" else "empate"
+                funActualizarEstadoPartido(idPartido, "finalizado", ganador)
             }
             navController.popBackStack()
-            nuevoEvento = false
+            cambiarMarcador = false
             botonActivo = true
         }
     }
-    
+
     Column (
         modifier = Modifier
             .fillMaxSize()
@@ -118,21 +110,6 @@ fun BodyContentEvento(
                 .padding(top = 25.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .padding(bottom = 15.dp)
-            ) {
-                options.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = option == selectedOption,
-                        onClick = { selectedOption = option },
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.padding(start = if (index != 0) 5.dp else 0.dp),
-                        label = { Text(option) }
-                    )
-                }
-            }
-
             // Campo de texto Minuto
             OutlinedTextField(
                 value = minuto,
@@ -144,51 +121,39 @@ fun BodyContentEvento(
                     .focusRequester(focusRequester1),
                 keyboardActions = KeyboardActions(onDone = { focusRequester2.requestFocus() }),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                supportingText = {Text(text = "${minuto.length}/3")}
+                supportingText = {Text(text = "${minuto.length}/3")},
+                enabled = enJuego
             )
 
-            // Campo de texto Título
+            // Campo de texto goles local
             OutlinedTextField(
-                value = titulo,
-                onValueChange = { if (it.length <= 10) titulo = it },
-                label = { Text("Título") },
+                value = golesL,
+                onValueChange = { if (it.length <= 3 && it.all { it.isDigit() }) golesL = it },
+                label = { Text("Goles local") },
                 singleLine = true,
                 modifier = Modifier
                     .padding(start = 5.dp)
                     .focusRequester(focusRequester2),
                 keyboardActions = KeyboardActions(onDone = { focusRequester3.requestFocus() }),
-                supportingText = {Text(text = "${titulo.length}/10")}
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                supportingText = {Text(text = "${golesL.length}/3")}
             )
 
-            // Campo de texto Texto
+            // Campo de texto goles visitante
             OutlinedTextField(
-                value = texto,
-                onValueChange = { if (it.length <= 20) texto = it },
-                label = { Text("Texto") },
+                value = golesV,
+                onValueChange = { if (it.length <= 3 && it.all { it.isDigit() }) golesV = it },
+                label = { Text("Goles visitante") },
                 singleLine = true,
                 modifier = Modifier
                     .padding(start = 5.dp)
                     .focusRequester(focusRequester3),
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                supportingText = {Text(text = "${texto.length}/20")}
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                supportingText = {Text(text = "${golesV.length}/3")}
             )
 
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .padding(top = 15.dp)
-            ) {
-                optionsEquipo.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = option == selectedOptionEquipo,
-                        onClick = { selectedOptionEquipo = option },
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.padding(start = if (index != 0) 5.dp else 0.dp),
-                        label = { Text(option) }
-                    )
-                }
-            }
         }
-
 
         HorizontalDivider(thickness = 1.dp)
         Row(
@@ -202,75 +167,26 @@ fun BodyContentEvento(
             Button(
                 onClick = {
                     botonActivo = false
-                    nuevoEvento = true
+                    cambiarMarcador = true
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(Constantes.redondeoBoton),
-                enabled = minuto.isNotEmpty() && titulo.isNotEmpty() && texto.isNotEmpty() && botonActivo
+                enabled = minuto.isNotEmpty() && golesL.isNotEmpty() && golesV.isNotEmpty() && botonActivo
             ) {
-                Text(text = "Crear evento")
+                Text(text = "Editar marcador")
             }
         }
     }
 }
 
-suspend fun crearEvento(idPartido: String, minuto: String, titulo: String, texto: String, tipoEvento: String, tipoEquipo: String) {
-    if (Firebase.auth.currentUser?.uid != null) {
-        val db = Firebase.firestore
-
-        // Obtén el contador actual
-        val counterRef = db.collection("counters").document("equiposCounter")
-        val counterSnapshot = counterRef.get().await()
-        val currentCounter = counterSnapshot.getLong("counter") ?: 0
-
-        // Incrementa el contador
-        counterRef.update("counter", currentCounter + 1)
-
-        // Crea el nuevo evento
-        val nuevoEvento = hashMapOf(
-            "creador" to Firebase.auth.currentUser?.uid,
-            "minuto" to minuto.toInt(),
-            "titulo" to titulo,
-            "texto" to texto,
-            "idPartido" to idPartido,
-            "tipoEvento" to tipoEvento,
-            "tipoEquipo" to tipoEquipo
-        )
-
-        // Añade el nuevo evento a la colección "eventos"
-        db.collection("eventos").document(currentCounter.toString()).set(nuevoEvento)
-    }
-}
-
-suspend fun sumarGol(idPartido: String, esLocal: Boolean) {
-    var campo ="golesVisitante"
-    if (esLocal) {
-        campo = "golesLocal"
-    }
-
+suspend fun actualizarMarcador(idPartido: String, minuto: String, golesL: String, golesV: String) {
     val db = Firebase.firestore
     val partidoRef = db.collection("partidos").document(idPartido)
 
     partidoRef.update(
-        campo, FieldValue.increment(1)
+        "minutos", minuto.toInt(),
+        "golesLocal", golesL.toInt(),
+        "golesVisitante", golesV.toInt()
     ).await()
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun GreetingPreviewEvento() {
-    TuproTheme(darkTheme = false) {
-        val navController = rememberNavController()
-        ScreenEvento(navController, "", "", "", "0")
-    }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun GreetingPreviewDarkEvento() {
-    TuproTheme(darkTheme = true) {
-        val navController = rememberNavController()
-        ScreenEvento(navController, "", "", "", "0")
-    }
 }

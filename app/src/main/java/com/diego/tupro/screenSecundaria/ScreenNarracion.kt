@@ -17,11 +17,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -37,12 +34,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.diego.tupro.Constantes
-import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
@@ -51,7 +45,7 @@ import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScreenEvento(navController: NavController, equipoLocal: String, equipoVisitante: String, idPartido: String, minuto: String) {
+fun ScreenNarracion(navController: NavController, equipoLocal: String, equipoVisitante: String, idPartido: String, minuto: String) {
     Scaffold(
         topBar = {
             Column {
@@ -67,13 +61,13 @@ fun ScreenEvento(navController: NavController, equipoLocal: String, equipoVisita
             }
         }
     ) {
-        BodyContentEvento(it, idPartido, minuto, navController)
+        BodyContentNarracion(it, idPartido, minuto, navController)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun BodyContentEvento(
+fun BodyContentNarracion(
     paddingValues: PaddingValues,
     idPartido: String,
     minutoActual: String,
@@ -82,30 +76,21 @@ fun BodyContentEvento(
     var minuto by remember { mutableStateOf(minutoActual) }
     var titulo by remember { mutableStateOf("") }
     var texto by remember { mutableStateOf("") }
-    var nuevoEvento by remember { mutableStateOf(false) }
+    var nuevaNarracion by remember { mutableStateOf(false) }
     var botonActivo by remember { mutableStateOf(true) }
-
-    val options = listOf("Gol", "Tarjeta", "Cambio")
-    var selectedOption by remember { mutableStateOf(options[0]) }
-
-    val optionsEquipo = listOf("Local", "Visitante")
-    var selectedOptionEquipo by remember { mutableStateOf(optionsEquipo[0]) }
 
     val focusManager = LocalFocusManager.current
     val (focusRequester1, focusRequester2, focusRequester3) = remember { FocusRequester.createRefs() }
 
-    LaunchedEffect(nuevoEvento) {
-        if (nuevoEvento) {
-            crearEvento(idPartido, minuto, titulo, texto, selectedOption.lowercase(), selectedOptionEquipo.lowercase())
-            if (selectedOption.lowercase() == "gol") {
-                sumarGol(idPartido, selectedOptionEquipo.lowercase() == "local")
-            }
+    LaunchedEffect(nuevaNarracion) {
+        if (nuevaNarracion) {
+            crearNarracion(idPartido, minuto, titulo, texto)
             navController.popBackStack()
-            nuevoEvento = false
+            nuevaNarracion = false
             botonActivo = true
         }
     }
-    
+
     Column (
         modifier = Modifier
             .fillMaxSize()
@@ -118,20 +103,6 @@ fun BodyContentEvento(
                 .padding(top = 25.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ){
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .padding(bottom = 15.dp)
-            ) {
-                options.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = option == selectedOption,
-                        onClick = { selectedOption = option },
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.padding(start = if (index != 0) 5.dp else 0.dp),
-                        label = { Text(option) }
-                    )
-                }
-            }
 
             // Campo de texto Minuto
             OutlinedTextField(
@@ -173,20 +144,6 @@ fun BodyContentEvento(
                 supportingText = {Text(text = "${texto.length}/20")}
             )
 
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier
-                    .padding(top = 15.dp)
-            ) {
-                optionsEquipo.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = option == selectedOptionEquipo,
-                        onClick = { selectedOptionEquipo = option },
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.padding(start = if (index != 0) 5.dp else 0.dp),
-                        label = { Text(option) }
-                    )
-                }
-            }
         }
 
 
@@ -202,20 +159,20 @@ fun BodyContentEvento(
             Button(
                 onClick = {
                     botonActivo = false
-                    nuevoEvento = true
+                    nuevaNarracion = true
                 },
                 modifier = Modifier
                     .fillMaxWidth(),
                 shape = RoundedCornerShape(Constantes.redondeoBoton),
                 enabled = minuto.isNotEmpty() && titulo.isNotEmpty() && texto.isNotEmpty() && botonActivo
             ) {
-                Text(text = "Crear evento")
+                Text(text = "Crear narración")
             }
         }
     }
 }
 
-suspend fun crearEvento(idPartido: String, minuto: String, titulo: String, texto: String, tipoEvento: String, tipoEquipo: String) {
+suspend fun crearNarracion(idPartido: String, minuto: String, titulo: String, texto: String) {
     if (Firebase.auth.currentUser?.uid != null) {
         val db = Firebase.firestore
 
@@ -227,50 +184,13 @@ suspend fun crearEvento(idPartido: String, minuto: String, titulo: String, texto
         // Incrementa el contador
         counterRef.update("counter", currentCounter + 1)
 
-        // Crea el nuevo evento
         val nuevoEvento = hashMapOf(
             "creador" to Firebase.auth.currentUser?.uid,
             "minuto" to minuto.toInt(),
             "titulo" to titulo,
             "texto" to texto,
-            "idPartido" to idPartido,
-            "tipoEvento" to tipoEvento,
-            "tipoEquipo" to tipoEquipo
+            "idPartido" to idPartido
         )
-
-        // Añade el nuevo evento a la colección "eventos"
-        db.collection("eventos").document(currentCounter.toString()).set(nuevoEvento)
-    }
-}
-
-suspend fun sumarGol(idPartido: String, esLocal: Boolean) {
-    var campo ="golesVisitante"
-    if (esLocal) {
-        campo = "golesLocal"
-    }
-
-    val db = Firebase.firestore
-    val partidoRef = db.collection("partidos").document(idPartido)
-
-    partidoRef.update(
-        campo, FieldValue.increment(1)
-    ).await()
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun GreetingPreviewEvento() {
-    TuproTheme(darkTheme = false) {
-        val navController = rememberNavController()
-        ScreenEvento(navController, "", "", "", "0")
-    }
-}
-
-@Preview(showSystemUi = true)
-@Composable
-fun GreetingPreviewDarkEvento() {
-    TuproTheme(darkTheme = true) {
-        val navController = rememberNavController()
-        ScreenEvento(navController, "", "", "", "0")
+        db.collection("narraciones").document(currentCounter.toString()).set(nuevoEvento)
     }
 }

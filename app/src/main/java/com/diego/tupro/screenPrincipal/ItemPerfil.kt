@@ -90,6 +90,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
 
@@ -107,7 +108,6 @@ fun EstructuraItemPerfil(navController: NavController) {
     val user = sessionManager.getUserDetails()
     val usuario = user["username"]
     val correo = user["email"]
-    // Estado para mostrar/ocultar el diálogo de confirmación
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val modoEdicion = remember { mutableStateOf(false) }
@@ -117,6 +117,15 @@ fun EstructuraItemPerfil(navController: NavController) {
     val aportaciones = remember { mutableIntStateOf(0) }
     contarAportaciones().addOnSuccessListener { count ->
         aportaciones.intValue = count
+    }
+    val eliminarRelaciones = remember { mutableStateOf(false) }
+    val copiaSelecEquipos = remember { mutableStateListOf<Equipo>() }
+    val copiaSelecComp = remember { mutableStateListOf<Comp>() }
+    LaunchedEffect(eliminarRelaciones.value) {
+        if (eliminarRelaciones.value){
+            borrarRelaciones(copiaSelecEquipos, copiaSelecComp)
+            eliminarRelaciones.value = false
+        }
     }
 
     Scaffold(
@@ -149,6 +158,9 @@ fun EstructuraItemPerfil(navController: NavController) {
                             confirmButton = {
                                 FilledTonalButton(
                                     onClick = {
+                                        copiaSelecEquipos.addAll(selecEquipos)
+                                        copiaSelecComp.addAll(selecComp)
+                                        eliminarRelaciones.value = true
                                         if (selecEquipos.isNotEmpty()) {
                                             val db = FirebaseFirestore.getInstance()
                                             val batch = db.batch()
@@ -812,6 +824,7 @@ fun BodyContentPerfil(
                                                     } else {
                                                         selecComp.add(comp)
                                                     }
+                                                    // TODO comprobar que existe
                                                 } else {navController.navigate("screen_competicion/${comp.codigo}/${comp.creador}/${comp.nombre}/${comp.idDocumento}")}
                                             },
                                             onLongClick = {
@@ -832,6 +845,46 @@ fun BodyContentPerfil(
             }
         }
     }
+}
+
+suspend fun borrarRelaciones(selecEquipos: List<Equipo>, selecComp: List<Comp>) {
+    val db = FirebaseFirestore.getInstance()
+    val batch = db.batch()
+
+    // Verifica y elimina los equipos y partidos relacionados
+    for (equipo in selecEquipos) {
+        // Consulta los partidos donde el equipo es local o visitante
+        val partidosLocal = db.collection("partidos").whereEqualTo("idLocal", equipo.idDocumento).get().await()
+        val partidosVisitante = db.collection("partidos").whereEqualTo("idVisitante", equipo.idDocumento).get().await()
+
+        // Añade los documentos de los partidos a la operación de eliminación por lotes
+        for (partidoDocument in partidosLocal) {
+            batch.delete(partidoDocument.reference)
+        }
+        for (partidoDocument in partidosVisitante) {
+            batch.delete(partidoDocument.reference)
+        }
+    }
+
+    // Verifica y elimina las competiciones y partidos relacionados
+    for (comp in selecComp) {
+        // Consulta los partidos donde la competición es la especificada
+        val partidosComp = db.collection("partidos").whereEqualTo("idComp", comp.idDocumento).get().await()
+
+        // Añade los documentos de los partidos a la operación de eliminación por lotes
+        for (partidoDocument in partidosComp) {
+            batch.delete(partidoDocument.reference)
+        }
+    }
+
+    // Consulta atómica
+    batch.commit()
+        .addOnSuccessListener {
+            Log.d("eliminar_elementos", "Documentos eliminados con éxito")
+        }
+        .addOnFailureListener { e ->
+            Log.w("eliminar_elementos", "Error al eliminar los documentos", e)
+        }
 }
 
 data class Equipo(

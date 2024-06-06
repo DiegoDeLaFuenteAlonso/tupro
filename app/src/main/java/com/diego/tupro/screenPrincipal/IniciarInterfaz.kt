@@ -1,6 +1,7 @@
 package com.diego.tupro.screenPrincipal
 
 import android.annotation.SuppressLint
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,14 +50,19 @@ import com.diego.tupro.ui.theme.TuproTheme
 import androidx.compose.material.icons.filled.SavedSearch
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import com.diego.tupro.Constantes
+import com.diego.tupro.navigation.AppScreens
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -93,6 +99,30 @@ fun BarraSuperior(titulo: String) {
 }
 @Composable
 fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navController: NavController) {
+    val comprobarComp = remember { mutableStateOf<ItemBusqueda?>(null) }
+    val comprobarEquipo = remember { mutableStateOf<ItemBusqueda?>(null) }
+    val context = LocalContext.current
+
+    LaunchedEffect(comprobarComp.value) {
+        if (comprobarComp.value != null) {
+            if (existeCompeticion(comprobarComp.value?.idDocumento)) {
+                navController.navigate("screen_competicion/${comprobarComp.value?.codigo}/${comprobarComp.value?.creador}/${comprobarComp.value?.nombre}/${comprobarComp.value?.idDocumento}")
+            } else {
+                Toast.makeText(context, "competición no encontrada", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    LaunchedEffect(comprobarEquipo.value) {
+        if (comprobarEquipo.value != null) {
+            if (existeEquipo(comprobarEquipo.value?.idDocumento)) {
+                navController.navigate("screen_equipo/${comprobarEquipo.value?.codigo}/${comprobarEquipo.value?.creador}/${comprobarEquipo.value?.nombre}/${comprobarEquipo.value?.idDocumento}")
+            } else {
+                Toast.makeText(context, "equipo no encontrado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -122,8 +152,8 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
                 trailingContent = { if(!esUser) Text(it.tipo + ": " + it.creador) else Text(it.tipo)},
                 modifier = Modifier
                     .clickable {
-                        if (it.tipo == "Equipo") navController.navigate("screen_equipo/${it.codigo}/${it.creador}/${it.nombre}/${it.idDocumento}")
-                        else if (it.tipo == "Competicion") navController.navigate("screen_competicion/${it.codigo}/${it.creador}/${it.nombre}/${it.idDocumento}")
+                        if (it.tipo == "Equipo") comprobarEquipo.value = it
+                        else if (it.tipo == "Competicion") comprobarComp.value = it
                         else if (it.tipo == "Usuario") {
                             val auth = FirebaseAuth.getInstance()
                             val uid = auth.currentUser?.uid
@@ -184,6 +214,20 @@ fun BarraInferior(navController: NavController, i: Int) {
 
 @Composable
 fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: NavController) {
+    val idPartido = remember { mutableStateOf<String?>(null) }
+    val creador = remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    LaunchedEffect(idPartido.value) {
+        if (idPartido.value != null) {
+            if (existePartido(idPartido.value)) {
+                navController.navigate("screen_partido/${idPartido.value!!}/${creador.value}")
+            } else {
+                Toast.makeText(context, "partido no encontrado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -195,7 +239,10 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 15.dp),
                 shape = RoundedCornerShape(Constantes.redondeoBoton),
-                onClick = { navController.navigate("screen_partido/${partido.idPartido}/${partido.creador}") }
+                onClick = {
+                    creador.value = partido.creador
+                    idPartido.value = partido.idPartido
+                }
 
             ) {
                 // competicion
@@ -274,6 +321,31 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
         }
     }
 }
+
+suspend fun existePartido(idPartido: String?): Boolean {
+    if (idPartido == null) return false
+
+    val db = FirebaseFirestore.getInstance()
+    val partidoDocument = db.collection("partidos").document(idPartido).get().await()
+    return partidoDocument.exists()
+}
+
+suspend fun existeCompeticion(idComp: String?): Boolean {
+    if (idComp == null) return false
+
+    val db = FirebaseFirestore.getInstance()
+    val competicionDocument = db.collection("competiciones").document(idComp).get().await()
+    return competicionDocument.exists()
+}
+
+suspend fun existeEquipo(idEquipo: String?): Boolean {
+    if (idEquipo == null) return false
+
+    val db = FirebaseFirestore.getInstance()
+    val equipoDocument = db.collection("equipos").document(idEquipo).get().await()
+    return equipoDocument.exists()
+}
+
 
 data class BottomNavigationItem(
     val titulo: String,

@@ -20,7 +20,10 @@ import com.diego.tupro.screenSecundaria.ScreenCompeticion
 import com.diego.tupro.screenSecundaria.ScreenCrearCompeticion
 import com.diego.tupro.screenSecundaria.ScreenCrearEquipo
 import com.diego.tupro.screenSecundaria.ScreenCrearPartido
+import com.diego.tupro.screenSecundaria.ScreenEditarMarcador
 import com.diego.tupro.screenSecundaria.ScreenEquipo
+import com.diego.tupro.screenSecundaria.ScreenEvento
+import com.diego.tupro.screenSecundaria.ScreenNarracion
 import com.diego.tupro.screenSecundaria.ScreenPartido
 import com.diego.tupro.screenSecundaria.ScreenPerfil
 import com.diego.tupro.screenSecundaria.ScreenRegistro
@@ -176,6 +179,68 @@ fun AppNavigation() {
                 if (id != null && idL != null && idV != null) {
                     mostrarBarra.value = false
                     ScreenSeleccionarFecha(navController, id, idL, idV)
+                }
+            }
+            composable(
+                route = AppScreens.ScreenEvento.route + "/{equipoLocal}/{equipoVisitante}/{idPartido}/{minuto}",
+                arguments = listOf(
+                    navArgument("equipoLocal") { type = NavType.StringType },
+                    navArgument("equipoVisitante") { type = NavType.StringType },
+                    navArgument("idPartido") { type = NavType.StringType },
+                    navArgument("minuto") { type = NavType.StringType }
+                )
+            ) {
+                val idPartido = it.arguments?.getString("idPartido")
+                val local = it.arguments?.getString("equipoLocal")
+                val visitante = it.arguments?.getString("equipoVisitante")
+                val minuto = it.arguments?.getString("minuto")
+                if (idPartido != null && local != null && visitante != null && minuto != null) {
+                    mostrarBarra.value = false
+                    ScreenEvento(navController, local, visitante, idPartido, minuto)
+                }
+            }
+            composable(
+                route = AppScreens.ScreenNarracion.route + "/{equipoLocal}/{equipoVisitante}/{idPartido}/{minuto}",
+                arguments = listOf(
+                    navArgument("equipoLocal") { type = NavType.StringType },
+                    navArgument("equipoVisitante") { type = NavType.StringType },
+                    navArgument("idPartido") { type = NavType.StringType },
+                    navArgument("minuto") { type = NavType.StringType }
+                )
+            ) {
+                val idPartido = it.arguments?.getString("idPartido")
+                val local = it.arguments?.getString("equipoLocal")
+                val visitante = it.arguments?.getString("equipoVisitante")
+                val minuto = it.arguments?.getString("minuto")
+                if (idPartido != null && local != null && visitante != null && minuto != null) {
+                    mostrarBarra.value = false
+                    ScreenNarracion(navController, local, visitante, idPartido, minuto)
+                }
+            }
+            composable(
+                route = AppScreens.ScreenEditarMarcador.route + "/{equipoLocal}/{equipoVisitante}/{idPartido}/{minuto}/{golesLocal}/{golesVisitante}/{enJuego}/{finalizado}",
+                arguments = listOf(
+                    navArgument("equipoLocal") { type = NavType.StringType },
+                    navArgument("equipoVisitante") { type = NavType.StringType },
+                    navArgument("idPartido") { type = NavType.StringType },
+                    navArgument("minuto") { type = NavType.StringType },
+                    navArgument("golesLocal") { type = NavType.StringType },
+                    navArgument("golesVisitante") { type = NavType.StringType },
+                    navArgument("enJuego") { type = NavType.BoolType },
+                    navArgument("finalizado") { type = NavType.BoolType }
+                )
+            ) {
+                val idPartido = it.arguments?.getString("idPartido")
+                val local = it.arguments?.getString("equipoLocal")
+                val visitante = it.arguments?.getString("equipoVisitante")
+                val minuto = it.arguments?.getString("minuto")
+                val golesL = it.arguments?.getString("golesLocal")
+                val golesV = it.arguments?.getString("golesVisitante")
+                val enJuego = it.arguments?.getBoolean("enJuego")
+                val finalizado = it.arguments?.getBoolean("finalizado")
+                if (idPartido != null && local != null && visitante != null && minuto != null && golesL != null && golesV != null && enJuego != null && finalizado != null) {
+                    mostrarBarra.value = false
+                    ScreenEditarMarcador(navController, local, visitante, idPartido, minuto, golesL, golesV, enJuego, finalizado)
                 }
             }
         }

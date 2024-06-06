@@ -17,4 +17,7 @@ sealed class AppScreens(val route: String) {
     object ItemFavoritos: AppScreens("item_favoritos")
     object ScreenCrearPartido: AppScreens("screen_crear_partido")
     object ScreenSeleccionarFecha: AppScreens("screen_seleccionar_fecha")
+    object ScreenEvento: AppScreens("screen_evento")
+    object ScreenNarracion: AppScreens("screen_narracion")
+    object ScreenEditarMarcador: AppScreens("screen_editar_marcador")
 }
