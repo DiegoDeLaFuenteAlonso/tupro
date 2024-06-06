@@ -112,6 +112,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
 
     val context = LocalContext.current
 
+    val borrarPartido = remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         escucharCambiosPartido(idPartido, partido, isLoadingPartido)
     }
@@ -130,8 +132,15 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
     LaunchedEffect(actualizarEstado) {
         if (actualizarEstado) {
             funActualizarEstadoPartido(partido.value.idPartido, nuevoEstado, resultado)
-            //isLoadingPartido = true
             actualizarEstado = false
+        }
+    }
+
+    LaunchedEffect(borrarPartido.value) {
+        if (borrarPartido.value) {
+            eliminarPartido(idPartido)
+            navController.popBackStack()
+            borrarPartido.value = false
         }
     }
 
@@ -270,7 +279,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                         FilledTonalButton(
                                             onClick = {
                                                 openDialog = false
-                                                // TODO: Eliminar partido
+                                                borrarPartido.value = true
                                             },
                                             colors = ButtonDefaults.filledTonalButtonColors(
                                                 colorScheme.errorContainer
@@ -445,7 +454,7 @@ fun BodyContentPartido(
                         modifier = Modifier.padding(bottom = 10.dp)
                     )
                     Text(text = fila2, fontSize = 18.sp, modifier = Modifier.padding(bottom = 8.dp))
-                    Text(text = partido.fecha, fontSize = 14.sp)
+                    if (partido.estado != "nuevo") Text(text = partido.fecha, fontSize = 14.sp)
                 }
                 Column(
                     modifier = Modifier
@@ -939,6 +948,13 @@ fun escucharCambiosEventos(
     } finally {
         isLoadingEventos.value = false
     }
+}
+
+suspend fun eliminarPartido(idPartido: String) {
+    val db = Firebase.firestore
+
+    val partidoRef = db.collection("partidos").document(idPartido)
+    partidoRef.delete().await()
 }
 
 fun iniciarContador(context: Context, idPartido: String) {
