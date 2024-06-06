@@ -18,6 +18,7 @@ class Constantes {
         val guardadoResultBusqueda = mutableListOf<ItemBusqueda>()
         // item favoritos
         var favSelectedTabIndex = 0
+        var perfilSelectedTabIndex = 0
 
         fun reiniciarNavegacion(navController: NavController) {
             navController.navigate("item_inicio") {
