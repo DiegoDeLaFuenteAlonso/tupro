@@ -5,12 +5,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.diego.tupro.screenPrincipal.ItemBusqueda
+
 class Constantes {
     companion object {
         val redondeoBoton = 14.dp
         var usuario = ""
         var correo = ""
         var sesionIniciada = false
+        // item buscar
+        var guardadoTextoBuscar = ""
+        val guardadoResultBusqueda = mutableListOf<ItemBusqueda>()
 
         fun reiniciarNavegacion(navController: NavController) {
             navController.navigate("item_inicio") {
