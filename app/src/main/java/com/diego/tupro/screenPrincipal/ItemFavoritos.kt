@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.diego.tupro.Constantes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
@@ -56,7 +57,7 @@ fun ItemFavoritos(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavController) {
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var selectedTabIndex by remember { mutableIntStateOf(Constantes.favSelectedTabIndex) }
     val auth = FirebaseAuth.getInstance()
     val uid = auth.currentUser?.uid
 
@@ -89,6 +90,7 @@ fun BodyContentFavoritos(innerPadding: PaddingValues, navController: NavControll
     }
     LaunchedEffect(selectedTabIndex) {
         pagerState.animateScrollToPage(selectedTabIndex)
+        Constantes.favSelectedTabIndex = selectedTabIndex
     }
     LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
         if (!pagerState.isScrollInProgress) {

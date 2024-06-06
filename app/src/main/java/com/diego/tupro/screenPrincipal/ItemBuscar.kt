@@ -71,12 +71,6 @@ fun BodyContentBuscar(
         Constantes.guardadoTextoBuscar = textoBuscar
     }
 
-    // Actualiza la constante global cuando cambia el valor de resultBusqueda
-    /*LaunchedEffect(resultBusqueda) {
-        Constantes.guardadoResultBusqueda.clear()
-        Constantes.guardadoResultBusqueda.addAll(resultBusqueda)
-    }*/
-
     val isLoading = remember { mutableStateOf(false) }
     val realizarConsulta = remember { mutableStateOf(false) }
     LaunchedEffect(realizarConsulta.value) {
