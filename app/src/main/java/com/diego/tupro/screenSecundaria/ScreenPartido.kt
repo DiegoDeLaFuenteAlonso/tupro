@@ -1,6 +1,8 @@
 package com.diego.tupro.screenSecundaria
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -70,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.diego.tupro.ActualizarMinutosService
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
 import com.diego.tupro.navigation.AppScreens
@@ -106,6 +109,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
     var actualizarEstado by remember { mutableStateOf(false) }
     var nuevoEstado by remember { mutableStateOf("") }
     var resultado by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         escucharCambiosPartido(idPartido, partido, isLoadingPartido)
@@ -188,6 +193,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                                 expanded = false
                                                 nuevoEstado = "enJuego"
                                                 actualizarEstado = true
+
+                                                iniciarContador(context, idPartido)
                                             },
                                             text = { Text(text = "Iniciar partido") }
                                         )
@@ -198,6 +205,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                                 expanded = false
                                                 nuevoEstado = "detenido"
                                                 actualizarEstado = true
+
+                                                detenerContador(context)
                                             },
                                             text = { Text(text = "Detener partido") }
                                         )
@@ -206,6 +215,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                                 expanded = false
                                                 nuevoEstado = "descanso"
                                                 actualizarEstado = true
+
+                                                detenerContador(context)
                                             },
                                             text = { Text(text = "Descanso") }
                                         )
@@ -216,6 +227,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                                 expanded = false
                                                 nuevoEstado = "enJuego"
                                                 actualizarEstado = true
+
+                                                iniciarContador(context, idPartido)
                                             },
                                             text = { Text(text = "Reanudar") }
                                         )
@@ -228,6 +241,8 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                                 resultado =
                                                     if (partido.value.golesLocal > partido.value.golesVisitante) "local" else if (partido.value.golesLocal < partido.value.golesVisitante) "visitante" else "empate"
                                                 actualizarEstado = true
+
+                                                detenerContador(context)
                                             },
                                             text = { Text(text = "Finalizar") }
                                         )
@@ -924,6 +939,18 @@ fun escucharCambiosEventos(
     } finally {
         isLoadingEventos.value = false
     }
+}
+
+fun iniciarContador(context: Context, idPartido: String) {
+    val intent = Intent(context, ActualizarMinutosService::class.java).apply {
+        putExtra("idPartido", idPartido)
+    }
+    context.startService(intent)
+}
+
+fun detenerContador(context: Context) {
+    val intent = Intent(context, ActualizarMinutosService::class.java)
+    context.stopService(intent)
 }
 
 data class Evento(
