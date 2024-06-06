@@ -6,6 +6,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.diego.tupro.screenPrincipal.ItemBusqueda
+import java.time.LocalDate
 
 class Constantes {
     companion object {
@@ -18,7 +19,10 @@ class Constantes {
         val guardadoResultBusqueda = mutableListOf<ItemBusqueda>()
         // item favoritos
         var favSelectedTabIndex = 0
+        // item perfil
         var perfilSelectedTabIndex = 0
+        // item inicio
+        var guardadoInicioFecha: LocalDate = LocalDate.now()
 
         fun reiniciarNavegacion(navController: NavController) {
             navController.navigate("item_inicio") {
