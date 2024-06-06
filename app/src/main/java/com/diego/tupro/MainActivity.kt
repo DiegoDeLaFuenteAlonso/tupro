@@ -1,5 +1,6 @@
 package com.diego.tupro
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,14 +14,10 @@ import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.navigation.AppNavigation
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
-enum class TipoProveedor{
-    BASIC,
-    GOOGLE
-}
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         setContent {
             TuproTheme {
                 // A surface container using the 'background' color from the theme

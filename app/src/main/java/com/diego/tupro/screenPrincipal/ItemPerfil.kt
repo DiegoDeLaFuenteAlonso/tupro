@@ -512,7 +512,7 @@ fun BodyContentPerfil(
         }
     } else {
         // El usuario está registrado
-        var selectedTabIndex by remember { mutableIntStateOf(0) }
+        var selectedTabIndex by remember { mutableIntStateOf(Constantes.perfilSelectedTabIndex) }
         val tabItems = listOf(
             TabItem("Equipos", Icons.Filled.Shield, Icons.Outlined.Shield),
             TabItem("Competiciones", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents)
@@ -522,6 +522,7 @@ fun BodyContentPerfil(
         }
         LaunchedEffect(selectedTabIndex) {
             pagerState.animateScrollToPage(selectedTabIndex)
+            Constantes.perfilSelectedTabIndex = selectedTabIndex
         }
         LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
             if (!pagerState.isScrollInProgress) {

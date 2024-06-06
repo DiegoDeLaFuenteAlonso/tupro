@@ -68,7 +68,7 @@ fun ItemInicio(navController: NavController) {
 fun BodyContentInicio(padding: PaddingValues, navController: NavController) {
     val isLoading = remember { mutableStateOf(true) }
     val partidos = remember { mutableStateListOf<Partido>() }
-    val fecha = remember { mutableStateOf(LocalDate.now()) }
+    val fecha = remember { mutableStateOf(Constantes.guardadoInicioFecha) }
 
     val openDialogFecha = remember { mutableStateOf(false) }
     val stateFecha = rememberDatePickerState()
@@ -77,6 +77,7 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController) {
         isLoading.value = true
         partidos.clear()
         partidos.addAll(getPartidosPorFecha(fecha.value.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), partidos))
+        Constantes.guardadoInicioFecha = fecha.value
         isLoading.value = false
     }
 

@@ -63,8 +63,13 @@ fun BodyContentBuscar(
     innerPaddingValues: PaddingValues,
     navController: NavController
 ) {
-    var textoBuscar by remember { mutableStateOf("") }
-    val resultBusqueda = remember { mutableStateListOf<ItemBusqueda>() }
+    var textoBuscar by remember { mutableStateOf(Constantes.guardadoTextoBuscar) }
+    val resultBusqueda = remember { mutableStateListOf<ItemBusqueda>().apply { addAll(Constantes.guardadoResultBusqueda) } }
+
+    // Actualiza la constante global cuando cambia el valor de textoBuscar
+    LaunchedEffect(textoBuscar) {
+        Constantes.guardadoTextoBuscar = textoBuscar
+    }
 
     val isLoading = remember { mutableStateOf(false) }
     val realizarConsulta = remember { mutableStateOf(false) }
@@ -73,6 +78,7 @@ fun BodyContentBuscar(
         textoBuscar = textoBuscar.trim()
         if (realizarConsulta.value && textoBuscar.isNotEmpty()) {
             resultBusqueda.clear()
+            Constantes.guardadoResultBusqueda.clear()
             if(!textoBuscar.startsWith("#")){
                 resultBusqueda.addAll(getEquiposBuscar(textoBuscar))
                 resultBusqueda.addAll(getCompeticionesBuscar(textoBuscar))
@@ -81,6 +87,7 @@ fun BodyContentBuscar(
                 resultBusqueda.addAll(getEquiposPorIdBuscar(textoBuscar.substring(1, textoBuscar.length)))
                 resultBusqueda.addAll(getCompeticionesPorIdBuscar(textoBuscar.substring(1, textoBuscar.length)))
             }
+            Constantes.guardadoResultBusqueda.addAll(resultBusqueda)
         }
         realizarConsulta.value = false
         isLoading.value = false
