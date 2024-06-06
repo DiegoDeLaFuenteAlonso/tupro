@@ -113,7 +113,7 @@ fun ScreenCrearCompeticion(navController: NavController) {
                 label = { Text("Nombre") },
                 singleLine = true,
                 isError = errorComp,
-                supportingText = { Text("${textoComp.length}/30") },
+                supportingText = { Text("${textoComp.length}/20") },
                 trailingIcon = {
                     (if (errorComp) Icons.Default.ErrorOutline else null)?.let {
                         Icon(

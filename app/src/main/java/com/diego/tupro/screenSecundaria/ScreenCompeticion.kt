@@ -100,7 +100,7 @@ fun ScreenCompeticion(
     val user = sessionManager.getUserDetails()
 
     LaunchedEffect(Unit) {
-        limpiarEquiposBorrados(comp.idDocumento)
+        limpiarEquiposCompeticion(comp.idDocumento)
         esFav.value = existeFavComp(comp.idDocumento, uid)
         isLoadingInterfaz.value = false
     }
@@ -205,18 +205,26 @@ fun ScreenCompeticion(
 fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavController, comp: Comp) {
     val isLoadingPartido = remember { mutableStateOf(true) }
     val partidosComp = remember { mutableStateListOf<Partido>() }
-    val buscarUsuario = remember { mutableStateOf(false) }
+    // val buscarUsuario = remember { mutableStateOf(false) }
     val idCreador = remember { mutableStateOf<String?>(null) }
+    val clasificacion = remember { mutableStateListOf<ItemClasificacion>() }
+    val isLoadingClasificacion = remember { mutableStateOf(true) }
 
     LaunchedEffect(comp.idDocumento) {
         partidosComp.addAll(getPartidosComp(comp.idDocumento))
         isLoadingPartido.value = false
     }
+    /*
     LaunchedEffect(buscarUsuario) {
         if (buscarUsuario.value) {
             getUsuario(comp.creador).let { navController.navigate("${AppScreens.ScreenPerfil.route}/${comp.creador}/${it}") }
             buscarUsuario.value = false
         }
+    }*/
+    LaunchedEffect(comp.idDocumento) {
+        limpiarEquiposCompeticion(comp.idDocumento)
+        clasificacion.addAll(getClasificacion(comp.idDocumento))
+        isLoadingClasificacion.value = false
     }
 
     LaunchedEffect(comp.creador) {
@@ -346,31 +354,52 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
                     }
                 }
             } else if (index == 1) {
-                val lista = listOf(
-                    ItemClasificacion("Equipo 1", 10, 5, 3, 1, 1, 8, 4),
-                    ItemClasificacion("Equipo 2", 9, 5, 3, 0, 2, 7, 5),
-                    ItemClasificacion("Equipo 3", 8, 5, 2, 2, 1, 6, 4),
-                )
-
-                Column(
-                    Modifier.padding(10.dp)
-                ) {
+                if (isLoadingClasificacion.value) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
-                        Text(text = "Equipo")
-                        Text(text = "Puntos")
-                        Text(text = "PJ")
-                        Text(text = "PG")
-                        Text(text = "PE")
-                        Text(text = "PP")
-                        Text(text = "GF")
-                        Text(text = "GC")
+                        CircularProgressIndicator()
                     }
-                    TablaClasificacion(lista)
+                } else if (clasificacion.isEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            "Esta competición no tiene\n ningún equipo",
+                            fontSize = 22.sp,
+                            color = colorScheme.secondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    Column(
+                        Modifier
+                            .padding(10.dp)
+                            .fillMaxSize()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "Equipo")
+                            Text(text = "Puntos")
+                            Text(text = "PJ")
+                            Text(text = "PG")
+                            Text(text = "PE")
+                            Text(text = "PP")
+                            Text(text = "GF")
+                            Text(text = "GC")
+                        }
+                        TablaClasificacion(clasificacion)
+                    }
                 }
             }
         }
@@ -408,10 +437,10 @@ suspend fun getPartidosComp(idEquipo: String): SnapshotStateList<Partido> {
             fecha = partidoDocument.getString("fecha") ?: "",
             hora = partidoDocument.getString("hora") ?: "",
             estado = partidoDocument.getString("estado") ?: "",
-            golesLocal = partidoDocument.getLong("golesLocal").toString() ?: "",
-            golesVisitante = partidoDocument.getLong("golesVisitante").toString() ?: "",
+            golesLocal = partidoDocument.getLong("golesLocal").toString(),
+            golesVisitante = partidoDocument.getLong("golesVisitante").toString(),
             creador = creadorDocument.getString("username") ?: "eliminado",
-            minutos = partidoDocument.getLong("minutos").toString() ?: "",
+            minutos = partidoDocument.getLong("minutos").toString(),
             ganador = partidoDocument.getString("ganador") ?: ""
         )
 
@@ -433,26 +462,15 @@ fun TablaClasificacion(lista: List<ItemClasificacion>) {
                     .background(colorScheme.secondaryContainer),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = item.nombre, color = colorScheme.onSecondaryContainer)
-                Text(text = item.puntos.toString(), color = colorScheme.onSecondaryContainer)
-                Text(
-                    text = item.partidosJugados.toString(),
-                    color = colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = item.partidosGanados.toString(),
-                    color = colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = item.partidosEmpatados.toString(),
-                    color = colorScheme.onSecondaryContainer
-                )
-                Text(
-                    text = item.partidosPerdidos.toString(),
-                    color = colorScheme.onSecondaryContainer
-                )
-                Text(text = item.golesFavor.toString(), color = colorScheme.onSecondaryContainer)
-                Text(text = item.golesContra.toString(), color = colorScheme.onSecondaryContainer)
+                Text(text = (lista.indexOf(item) + 1).toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(0.5f))
+                Text(text = item.nombre, color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(2.5f))
+                Text(text = item.puntos.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
+                Text(text = item.partidosJugados.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
+                Text(text = item.partidosGanados.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
+                Text(text = item.partidosEmpatados.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
+                Text(text = item.partidosPerdidos.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
+                Text(text = item.golesFavor.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
+                Text(text = item.golesContra.toString(), color = colorScheme.onSecondaryContainer, modifier = Modifier.weight(1f))
             }
         }
     }
@@ -490,7 +508,7 @@ suspend fun existeFavComp(id: String, uid: String?): Boolean = withContext(Dispa
     }
 }
 
-suspend fun limpiarEquiposBorrados(compId: String) {
+suspend fun limpiarEquiposCompeticion(compId: String) {
     val db = FirebaseFirestore.getInstance()
     val compDocumentRef = db.collection("competiciones").document(compId)
 
@@ -522,6 +540,83 @@ suspend fun getUsuario(username: String): String? {
     return null
 }
 
+suspend fun getClasificacion(idComp: String): List<ItemClasificacion> {
+    val db = FirebaseFirestore.getInstance()
+
+    // Consulta la competición
+    val compDocument = db.collection("competiciones").document(idComp).get().await()
+    val equiposIds = compDocument.get("equipos") as List<String>
+
+    val clasificacion = mutableListOf<ItemClasificacion>()
+
+    // Consulta cada equipo
+    for (idEquipo in equiposIds) {
+        val equipoDocument = db.collection("equipos").document(idEquipo).get().await()
+        val nombreEquipo = equipoDocument.getString("equipo") ?: ""
+
+        var puntos = 0
+        var partidosJugados = 0
+        var partidosGanados = 0
+        var partidosEmpatados = 0
+        var partidosPerdidos = 0
+        var golesFavor = 0
+        var golesContra = 0
+
+        // Consulta los partidos donde el equipo es local
+        val partidosLocal = db.collection("partidos").whereEqualTo("idComp", idComp).whereEqualTo("idLocal", idEquipo).get().await()
+        for (partidoDocument in partidosLocal) {
+            partidosJugados++
+            golesFavor += partidoDocument.getLong("golesLocal")?.toInt() ?: 0
+            golesContra += partidoDocument.getLong("golesVisitante")?.toInt() ?: 0
+            when (partidoDocument.getString("ganador")) {
+                "local" -> {
+                    puntos += 3
+                    partidosGanados++
+                }
+                "empate" -> {
+                    puntos++
+                    partidosEmpatados++
+                }
+                "visitante" -> partidosPerdidos++
+            }
+        }
+
+        // Consulta los partidos donde el equipo es visitante
+        val partidosVisitante = db.collection("partidos").whereEqualTo("idComp", idComp).whereEqualTo("idVisitante", idEquipo).get().await()
+        for (partidoDocument in partidosVisitante) {
+            partidosJugados++
+            golesFavor += partidoDocument.getLong("golesVisitante")?.toInt() ?: 0
+            golesContra += partidoDocument.getLong("golesLocal")?.toInt() ?: 0
+            when (partidoDocument.getString("ganador")) {
+                "visitante" -> {
+                    puntos += 3
+                    partidosGanados++
+                }
+                "empate" -> {
+                    puntos++
+                    partidosEmpatados++
+                }
+                "local" -> partidosPerdidos++
+            }
+        }
+
+        // Añade el equipo a la clasificación
+        clasificacion.add(
+            ItemClasificacion(
+                nombre = nombreEquipo,
+                puntos = puntos,
+                partidosJugados = partidosJugados,
+                partidosGanados = partidosGanados,
+                partidosEmpatados = partidosEmpatados,
+                partidosPerdidos = partidosPerdidos,
+                golesFavor = golesFavor,
+                golesContra = golesContra
+            )
+        )
+    }
+
+    return clasificacion
+}
 
 data class ItemClasificacion(
     val nombre: String,

@@ -2,6 +2,7 @@ package com.diego.tupro.screenSecundaria
 
 import android.annotation.SuppressLint
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +58,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +77,8 @@ import com.diego.tupro.screenPrincipal.Comp
 import com.diego.tupro.screenPrincipal.Equipo
 import com.diego.tupro.screenPrincipal.Partido
 import com.diego.tupro.screenPrincipal.TabItem
+import com.diego.tupro.screenPrincipal.existeCompeticion
+import com.diego.tupro.screenPrincipal.existeEquipo
 import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -112,6 +114,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
     LaunchedEffect(partido.value) {
         if (partido.value.idPartido != "") {
             isLoadingPartido.value = true
+            //verificarEquiposCompeticion(idPartido)
             comp = getCompeticionPorId(idPartido)
             equipoLocal = getEquipoPorId(idPartido, true)
             equipoVisitante = getEquipoPorId(idPartido, false)
@@ -299,6 +302,10 @@ fun BodyContentPartido(
     val isLoadingComentarios = remember { mutableStateOf(true) }
     val eventos = remember { mutableStateListOf<Evento>() }
     val isLoadingEventos = remember { mutableStateOf(true) }
+    val comprobarComp = remember { mutableStateOf<String?>(null) }
+    val comprobarEquipoLocal = remember { mutableStateOf<String?>(null) }
+    val comprobarEquipoVisitante = remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
 
     if (partido.estado != "nuevo") {
         fila1 = partido.golesLocal + " - " + partido.golesVisitante
@@ -314,6 +321,36 @@ fun BodyContentPartido(
 
     LaunchedEffect(Unit) {
         escucharCambiosEventos(idPartido, eventos, isLoadingEventos)
+    }
+
+    LaunchedEffect(comprobarComp.value) {
+        if (comprobarComp.value != null) {
+            if (existeCompeticion(comprobarComp.value)) {
+                navController.navigate("${AppScreens.ScreenCompeticion.route}/${comp.codigo}/${comp.creador}/${comp.nombre}/${comp.idDocumento}")
+            } else {
+                Toast.makeText(context, "competición no encontrada", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    LaunchedEffect(comprobarEquipoLocal.value) {
+        if (comprobarEquipoLocal.value != null) {
+            if (existeEquipo(comprobarEquipoLocal.value)) {
+                navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoLocal.codigo}/${equipoLocal.creador}/${equipoLocal.equipo}/${equipoLocal.idDocumento}")
+            } else {
+                Toast.makeText(context, "equipo no encontrado", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    LaunchedEffect(comprobarEquipoVisitante.value) {
+        if (comprobarEquipoVisitante.value != null) {
+            if (existeEquipo(comprobarEquipoVisitante.value)) {
+                navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoVisitante.codigo}/${equipoVisitante.creador}/${equipoVisitante.equipo}/${equipoVisitante.idDocumento}")
+            } else {
+                Toast.makeText(context, "equipo no encontrado", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     Column(
@@ -337,7 +374,7 @@ fun BodyContentPartido(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        navController.navigate("${AppScreens.ScreenCompeticion.route}/${comp.codigo}/${comp.creador}/${comp.nombre}/${comp.idDocumento}")
+                        comprobarComp.value = comp.idDocumento
                     }
             ) {
                 Text(
@@ -357,7 +394,7 @@ fun BodyContentPartido(
                     modifier = Modifier
                         .weight(1f)
                         .clickable {
-                            navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoLocal.codigo}/${equipoLocal.creador}/${equipoLocal.equipo}/${equipoLocal.idDocumento}")
+                            comprobarEquipoLocal.value = equipoLocal.idDocumento
                         },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -399,7 +436,7 @@ fun BodyContentPartido(
                     modifier = Modifier
                         .weight(1f)
                         .clickable {
-                            navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoVisitante.codigo}/${equipoVisitante.creador}/${equipoVisitante.equipo}/${equipoVisitante.idDocumento}")
+                            comprobarEquipoVisitante.value = equipoVisitante.idDocumento
                         },
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -669,6 +706,40 @@ fun MostrarComentarios(comentarios: List<Comentario>) {
     }
 }
 
+suspend fun verificarEquiposCompeticion(idPartido: String) {
+    val db = FirebaseFirestore.getInstance()
+
+    // Obtén el documento del partido
+    val partidoDocumentRef = db.collection("partidos").document(idPartido)
+    val partidoDocument = partidoDocumentRef.get().await()
+
+    // Obtén los IDs de los equipos local y visitante, y la competición
+    val idLocal = partidoDocument.getString("idLocal") ?: ""
+    val idVisitante = partidoDocument.getString("idVisitante") ?: ""
+    val idComp = partidoDocument.getString("idComp") ?: ""
+
+    // Verifica si el equipo local existe
+    val equipoLocalDocument = db.collection("equipos").document(idLocal).get().await()
+    if (!equipoLocalDocument.exists()) {
+        // Si el equipo local no existe, actualiza el campo "idLocal" a una cadena vacía
+        partidoDocumentRef.update("idLocal", "").await()
+    }
+
+    // Verifica si el equipo visitante existe
+    val equipoVisitanteDocument = db.collection("equipos").document(idVisitante).get().await()
+    if (!equipoVisitanteDocument.exists()) {
+        // Si el equipo visitante no existe, actualiza el campo "idVisitante" a una cadena vacía
+        partidoDocumentRef.update("idVisitante", "").await()
+    }
+
+    // Verifica si la competición existe
+    val competicionDocument = db.collection("competiciones").document(idComp).get().await()
+    if (!competicionDocument.exists()) {
+        // Si la competición no existe, actualiza el campo "idComp" a una cadena vacía
+        partidoDocumentRef.update("idComp", "").await()
+    }
+}
+
 fun escucharCambiosPartido(
     idPartido: String,
     partido: MutableState<Partido>,
@@ -720,32 +791,51 @@ suspend fun getEquipoPorId(idPartido: String, isLocal: Boolean): Equipo {
     val partidoDocument = db.collection("partidos").document(idPartido).get().await()
     val idEquipo = partidoDocument.getString(consulta) ?: ""
 
-    val equipoDocument = db.collection("equipos").document(idEquipo).get().await()
-    val idCreador = equipoDocument.getString("creador") ?: ""
+    if (idEquipo != ""){
+        val equipoDocument = db.collection("equipos").document(idEquipo).get().await()
+        val idCreador = equipoDocument.getString("creador") ?: ""
 
-    val creadorDocument = db.collection("users").document(idCreador).get().await()
-    return Equipo(
-        codigo = equipoDocument.getString("codigo")?.uppercase() ?: "",
-        equipo = equipoDocument.getString("equipo") ?: "",
-        idDocumento = equipoDocument.id,
-        creador = creadorDocument.getString("username") ?: ""
-    )
+        val creadorDocument = db.collection("users").document(idCreador).get().await()
+        return Equipo(
+            codigo = equipoDocument.getString("codigo")?.uppercase() ?: "",
+            equipo = equipoDocument.getString("equipo") ?: "",
+            idDocumento = equipoDocument.id,
+            creador = creadorDocument.getString("username") ?: ""
+        )
+    } else{
+        return Equipo(
+            codigo = "",
+            equipo = "eliminado",
+            idDocumento = "",
+            creador = ""
+        )
+    }
 }
 
 suspend fun getCompeticionPorId(idPartido: String): Comp {
     val db = FirebaseFirestore.getInstance()
     val partidoDocument = db.collection("partidos").document(idPartido).get().await()
     val idCompeticion = partidoDocument.getString("idComp") ?: ""
-    val idCreador = partidoDocument.getString("creador") ?: ""
 
-    val competicionDocument = db.collection("competiciones").document(idCompeticion).get().await()
-    val creadorDocument = db.collection("users").document(idCreador).get().await()
-    return Comp(
-        codigo = competicionDocument.getString("codigo") ?: "",
-        nombre = competicionDocument.getString("competicion") ?: "",
-        idDocumento = competicionDocument.id,
-        creador = creadorDocument.getString("username") ?: ""
-    )
+    if (idCompeticion != ""){
+        val idCreador = partidoDocument.getString("creador") ?: ""
+
+        val competicionDocument = db.collection("competiciones").document(idCompeticion).get().await()
+        val creadorDocument = db.collection("users").document(idCreador).get().await()
+        return Comp(
+            codigo = competicionDocument.getString("codigo") ?: "",
+            nombre = competicionDocument.getString("competicion") ?: "",
+            idDocumento = competicionDocument.id,
+            creador = creadorDocument.getString("username") ?: ""
+        )
+    } else{
+        return Comp(
+            codigo = "",
+            nombre = "eliminado",
+            idDocumento = "",
+            creador = ""
+        )
+    }
 }
 
 suspend fun funActualizarEstadoPartido(idPartido: String, nuevoEstado: String, resultado: String) {
