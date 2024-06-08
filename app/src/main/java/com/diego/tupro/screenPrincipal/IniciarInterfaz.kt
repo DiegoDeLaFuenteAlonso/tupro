@@ -70,7 +70,7 @@ import java.util.Locale
 fun IniciarInterfaz(navController: NavController) {
     Scaffold (
         topBar = { BarraSuperior("")},
-        bottomBar = { BarraInferior(navController, 0) }
+        bottomBar = { BarraInferior(navController) }
     ){
         // ItemInicio()
     }
@@ -171,7 +171,7 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
 }
 
 @Composable
-fun BarraInferior(navController: NavController, i: Int) {
+fun BarraInferior(navController: NavController) {
     val items = listOf(
         BottomNavigationItem("Inicio", Icons.Filled.Home, Icons.Outlined.Home),
         BottomNavigationItem("Buscar", Icons.Default.SavedSearch, Icons.Outlined.Search),

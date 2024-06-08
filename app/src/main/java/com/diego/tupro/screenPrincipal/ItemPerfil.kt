@@ -348,7 +348,7 @@ fun EstructuraItemPerfil(navController: NavController) {
                 }
             }
         },
-        bottomBar = { BarraInferior(navController = navController, 2) }
+        bottomBar = { BarraInferior(navController = navController) }
 
     ) { innerPadding ->
         BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, selecComp, navController)
@@ -442,23 +442,26 @@ fun eliminarCuenta(navController: NavController, context: Context) {
         .delete()
         .addOnSuccessListener {
             Log.d("Borrar_Cuenta", "Datos de usuario borrados exitosamente de Firestore")
-
-            // Borrar la cuenta del usuario
-            user.delete().addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Log.d("Borrar_Cuenta", "Cuenta de usuario borrada exitosamente")
-                    val sessionManager = SessionManager(context)
-                    sessionManager.logoutUser()
-                    Constantes.reiniciarNavegacion(navController)
-                } else {
-                    Log.d("Borrar_Cuenta", "Error al borrar la cuenta de usuario")
-                }
-            }
         }
         .addOnFailureListener { e ->
             Log.w("Borrar_Cuenta", "Error al borrar los datos de usuario en Firestore", e)
         }
+
+    // Borrar la cuenta del usuario
+    user.delete().addOnCompleteListener { task ->
+        if (task.isSuccessful) {
+            Log.d("Borrar_Cuenta", "Cuenta de usuario borrada exitosamente")
+        } else {
+            Log.d("Borrar_Cuenta", "Error al borrar la cuenta de usuario")
+        }
+    }
+
+    // Hacer logout al usuario y reiniciar la navegación
+    val sessionManager = SessionManager(context)
+    sessionManager.logoutUser()
+    Constantes.reiniciarNavegacion(navController)
 }
+
 
 fun contarAportaciones(): Task<Int> {
     val auth = FirebaseAuth.getInstance()

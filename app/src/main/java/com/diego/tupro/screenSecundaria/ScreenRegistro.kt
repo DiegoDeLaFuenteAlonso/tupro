@@ -348,7 +348,9 @@ fun registrarUsuario(
                                                 val user = hashMapOf(
                                                     "username" to textoUsuario,
                                                     "usernameBusqueda" to textoUsuario.uppercase(),
-                                                    "email" to textoCorreo
+                                                    "email" to textoCorreo,
+                                                    "favEquipos" to listOf<String>(),
+                                                    "favCompeticiones" to listOf<String>()
                                                 )
                                                 db.collection("users").document(auth.uid!!)
                                                     .set(user)

@@ -56,7 +56,7 @@ fun ItemInicio(navController: NavController) {
         topBar = {
             BarraSuperior("")
         },
-        bottomBar = { BarraInferior(navController = navController, 0) }
+        bottomBar = { BarraInferior(navController = navController) }
 
     ) { innerPadding ->
         BodyContentInicio(innerPadding, navController)

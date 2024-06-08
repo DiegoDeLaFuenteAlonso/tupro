@@ -37,7 +37,7 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val mostrarBarra = remember { mutableStateOf(false) }
     Scaffold(
-        bottomBar = { if (mostrarBarra.value) BarraInferior(navController, 0) }
+        bottomBar = { if (mostrarBarra.value) BarraInferior(navController) }
     ) {
 
         NavHost(navController, AppScreens.ItemInicio.route) {

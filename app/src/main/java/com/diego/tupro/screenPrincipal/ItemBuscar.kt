@@ -51,7 +51,7 @@ fun ItemBuscar(navController: NavController) {
                 BarraSuperior("Buscar")
             }
         },
-        bottomBar = { BarraInferior(navController = navController, 1)}
+        bottomBar = { BarraInferior(navController = navController)}
 
     ) { innerPadding ->
         BodyContentBuscar(innerPadding, navController)

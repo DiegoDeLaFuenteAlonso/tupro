@@ -17,8 +17,8 @@ class ActualizarMinutosService : Service() {
         if (idPartido != null) {
             job = CoroutineScope(Dispatchers.IO).launch {
                 while (isActive) {
-                    delay(60000)  // Espera un minuto
                     actualizarMinutos(idPartido)
+                    delay(60000)  // Espera un minuto
                 }
             }
         }

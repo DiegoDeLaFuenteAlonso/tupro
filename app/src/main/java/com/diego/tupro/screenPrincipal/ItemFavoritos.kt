@@ -48,7 +48,7 @@ import kotlinx.coroutines.tasks.await
 fun ItemFavoritos(navController: NavController) {
     Scaffold(
         topBar = { BarraSuperior(titulo = "Favoritos")},
-        bottomBar = { BarraInferior(navController = navController, 1)}
+        bottomBar = { BarraInferior(navController = navController)}
     ) {
         BodyContentFavoritos(it, navController)
     }
