@@ -1,20 +1,54 @@
 package com.diego.tupro
+import android.annotation.SuppressLint
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.BitmapDrawable
+import android.os.Build
 import android.os.IBinder
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.*
 import kotlinx.coroutines.tasks.await
 import android.util.Log
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sports
+import androidx.core.app.NotificationCompat
 
 class ActualizarMinutosService : Service() {
 
     private var job: Job? = null
 
+    @SuppressLint("ForegroundServiceType")
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val idPartido = intent?.getStringExtra("idPartido")
         if (idPartido != null) {
+            // Crea la notificación
+            val channelId = "actualizar_minutos_service_channel"
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val name = "Mi Canal"
+                val descriptionText = "Canal para ActualizarMinutosService"
+                val importance = NotificationManager.IMPORTANCE_DEFAULT
+                val channel = NotificationChannel(channelId, name, importance).apply {
+                    description = descriptionText
+                }
+                val notificationManager: NotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.createNotificationChannel(channel)
+            }
+
+            val notification: Notification = NotificationCompat.Builder(this, channelId)
+                .setContentTitle("Partido en juego")
+                .setContentText("El contador de tiempo de tu partido está en ejecución")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .build()
+
+            // Inicia el servicio en primer plano
+            startForeground(1, notification)
+
+
             job = CoroutineScope(Dispatchers.IO).launch {
                 while (isActive) {
                     actualizarMinutos(idPartido)
@@ -28,6 +62,7 @@ class ActualizarMinutosService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         job?.cancel()  // Detiene la actualización cuando el servicio se detiene
+        stopForeground(true)  // Detiene el servicio en primer plano
     }
 
     suspend fun actualizarMinutos(idPartido: String) {

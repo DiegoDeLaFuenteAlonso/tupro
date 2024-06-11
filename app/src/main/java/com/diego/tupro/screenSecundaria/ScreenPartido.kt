@@ -167,7 +167,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                                     DropdownMenuItem(
                                         onClick = {
                                             expandedEdit = false
-                                            navController.navigate(  "${AppScreens.ScreenEvento.route}/${equipoLocal.codigo}/${equipoVisitante.codigo}/${partido.value.idPartido}/${partido.value.minutos}")
+                                            navController.navigate("${AppScreens.ScreenEvento.route}/${equipoLocal.codigo}/${equipoVisitante.codigo}/${partido.value.idPartido}/${partido.value.minutos}")
                                         },
                                         text = { Text(text = "Añadir evento") }
                                     )
