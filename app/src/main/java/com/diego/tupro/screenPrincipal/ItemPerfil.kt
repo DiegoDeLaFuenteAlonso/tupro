@@ -27,10 +27,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.AlertDialog
@@ -121,10 +119,32 @@ fun EstructuraItemPerfil(navController: NavController) {
     val eliminarRelaciones = remember { mutableStateOf(false) }
     val copiaSelecEquipos = remember { mutableStateListOf<Equipo>() }
     val copiaSelecComp = remember { mutableStateListOf<Comp>() }
+
     LaunchedEffect(eliminarRelaciones.value) {
         if (eliminarRelaciones.value){
             borrarRelaciones(copiaSelecEquipos, copiaSelecComp)
             eliminarRelaciones.value = false
+        }
+    }
+    val listaEquipos = remember { mutableStateListOf<Equipo>() }
+    val isLoadingEquipos = remember { mutableStateOf(true) }
+    LaunchedEffect(isLoadingEquipos.value) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (isLoadingEquipos.value && userId != null){
+            listaEquipos.clear()
+            listaEquipos.addAll(obtenerEquipos(userId))
+            isLoadingEquipos.value = false
+        }
+    }
+
+    val listaComp = remember { mutableStateListOf<Comp>() }
+    val isLoadingComp = remember { mutableStateOf(true) }
+    LaunchedEffect(isLoadingComp.value) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (isLoadingComp.value && userId != null){
+            listaComp.clear()
+            listaComp.addAll(obtenerCompeticiones(userId))
+            isLoadingComp.value = false
         }
     }
 
@@ -199,6 +219,8 @@ fun EstructuraItemPerfil(navController: NavController) {
                                         contarAportaciones().addOnSuccessListener { count ->
                                             aportaciones.intValue = count
                                         }
+                                        isLoadingEquipos.value = true
+                                        isLoadingComp.value = true
                                         showDialogEliminar = false
                                     },
                                     colors = ButtonDefaults.filledTonalButtonColors(colorScheme.errorContainer)
@@ -351,7 +373,18 @@ fun EstructuraItemPerfil(navController: NavController) {
         bottomBar = { BarraInferior(navController = navController) }
 
     ) { innerPadding ->
-        BodyContentPerfil(innerPadding, sessionManager, selecEquipos, modoEdicion, selecComp, navController)
+        BodyContentPerfil(
+            innerPadding,
+            sessionManager,
+            selecEquipos,
+            modoEdicion,
+            selecComp,
+            navController,
+            listaEquipos,
+            isLoadingEquipos,
+            listaComp,
+            isLoadingComp
+        )
 
         val sheetState = rememberModalBottomSheetState()
 
@@ -491,8 +524,12 @@ fun BodyContentPerfil(
     selecEquipos: SnapshotStateList<Equipo>,
     modoEdicion: MutableState<Boolean>,
     selecComp: SnapshotStateList<Comp>,
-    navController: NavController
-) {
+    navController: NavController,
+    listaEquipos: SnapshotStateList<Equipo>,
+    isLoadingEquipos: MutableState<Boolean>,
+    listaComp: SnapshotStateList<Comp>,
+    isLoadingComp: MutableState<Boolean>
+)  {
     val auth = Firebase.auth
     val currentUser = auth.currentUser
 
@@ -574,51 +611,7 @@ fun BodyContentPerfil(
 
                 if (index == 0) {
                     if (user != null) {
-                        // Crear un estado mutable para la lista de equipos
-                        val listaEquipos = remember { mutableStateListOf<Equipo>() }
-
-                        // Crear un estado mutable para el estado de carga
-                        val consultasEquipos = remember { mutableStateListOf(1) }
-                        val numeroConsultasEquipos = 1
-
-                        LaunchedEffect(key1 = user) {
-                            db.collection("equipos")
-                                .whereEqualTo("creador", user.uid)
-                                .addSnapshotListener { snapshot, e ->
-                                    consultasEquipos.clear()
-                                    //listaEquipos.clear()
-                                    if (e != null) {
-                                        Log.w("disparadon_consulta_equipos", "El disparador ha fallado, ", e)
-                                        return@addSnapshotListener
-                                    }
-
-                                    if (snapshot != null && !snapshot.isEmpty) {
-                                        listaEquipos.clear()
-                                        for (document in snapshot.documents) {
-                                            val codigo = document.getString("codigo") ?: ""
-                                            val equipo = document.getString("equipo") ?: ""
-                                            val idDocumento = document.id
-                                            val creadorId = document.getString("creador") ?: ""
-
-                                            db.collection("users").document(creadorId)
-                                                .get()
-                                                .addOnSuccessListener { userDocument ->
-                                                    val username = userDocument.getString("username") ?: ""
-                                                    listaEquipos.add(Equipo(codigo, equipo, idDocumento, username))
-                                                }
-                                                .addOnFailureListener { exception ->
-                                                    Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
-                                                }
-                                                .addOnCompleteListener{
-                                                    consultasEquipos.add(1)
-                                                }
-                                        }
-                                    } else {
-                                        Log.d("disparadon_consulta_equipos", "Current data: null")
-                                    }
-                                }
-                        }
-                        if (consultasEquipos.size < numeroConsultasEquipos) {
+                        if (isLoadingEquipos.value) {
                             // Mostrar un indicador de carga mientras la consulta está en progreso
                             Box (
                                 modifier = Modifier
@@ -699,74 +692,7 @@ fun BodyContentPerfil(
                 }
                 else if(index == 1){
                     if (user != null) {
-                        val listaComp = remember { mutableStateListOf<Comp>() }
-                        val consultasComp = remember { mutableStateListOf(1) }
-                        val numeroConsultasComp = 1
-
-                        LaunchedEffect(key1 = user) {
-                            db.collection("competiciones")
-                                .whereEqualTo("creador", user.uid)
-                                .addSnapshotListener { snapshot, e ->
-                                    consultasComp.clear()
-                                    listaComp.clear()
-                                    if (e != null) {
-                                        Log.w("disparador_consulta_equipos", "El disparador ha fallado, ", e)
-                                        return@addSnapshotListener
-                                    }
-
-                                    if (snapshot != null && !snapshot.isEmpty) {
-                                        // Realizar la operación de borrado del array
-
-                                        snapshot.documents.forEach { document ->
-                                            val equipos = document.get("equipos") as List<*>
-                                            val equiposExistentes = mutableListOf<String>()
-                                            val tasks = mutableListOf<Task<DocumentSnapshot>>()
-
-                                            equipos.forEach { idEquipo ->
-                                                val equipoRef = db.collection("equipos").document(idEquipo.toString())
-                                                val task = equipoRef.get()
-                                                tasks.add(task)
-                                                task.addOnSuccessListener { equipoDocument ->
-                                                    if (equipoDocument.exists()) {
-                                                        equiposExistentes.add(idEquipo.toString())
-                                                    }
-                                                }
-                                            }
-
-                                            Tasks.whenAllSuccess<DocumentSnapshot>(tasks).addOnSuccessListener {
-                                                if (equipos.size != equiposExistentes.size) {
-                                                    document.reference.update("equipos", equiposExistentes)
-                                                }
-                                            }
-                                        }
-
-
-                                        listaComp.clear()
-                                        for (document in snapshot.documents) {
-                                            val codigo = document.getString("codigo") ?: ""
-                                            val comp = document.getString("competicion") ?: ""
-                                            val idDocumento = document.id
-                                            val creadorId = document.getString("creador") ?: ""
-
-                                            db.collection("users").document(creadorId)
-                                                .get()
-                                                .addOnSuccessListener { userDocument ->
-                                                    val username = userDocument.getString("username") ?: ""
-                                                    listaComp.add(Comp(codigo, comp, idDocumento, username))
-                                                }
-                                                .addOnFailureListener { exception ->
-                                                    Log.w("consulta_equipos", "Error al obtener documento usuario: ", exception)
-                                                }
-                                                .addOnCompleteListener{
-                                                    consultasComp.add(1)
-                                                }
-                                        }
-                                    } else {
-                                        Log.d("disparadon_consulta_equipos", "Current data: null")
-                                    }
-                                }
-                        }
-                        if (consultasComp.size < numeroConsultasComp) {
+                        if (isLoadingComp.value) {
                             // Mostrar un indicador de carga mientras la consulta está en progreso
                             Box (
                                 modifier = Modifier
@@ -783,7 +709,7 @@ fun BodyContentPerfil(
                                 verticalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "Aun no has creado\nningún equipo",
+                                    text = "Aun no has creado\nninguna competición",
                                     fontSize = 22.sp,
                                     color = colorScheme.secondary,
                                     textAlign = TextAlign.Center
@@ -889,6 +815,80 @@ suspend fun borrarRelaciones(selecEquipos: List<Equipo>, selecComp: List<Comp>) 
         .addOnFailureListener { e ->
             Log.w("eliminar_elementos", "Error al eliminar los documentos", e)
         }
+}
+
+suspend fun obtenerEquipos(userId: String): List<Equipo> {
+    val db = FirebaseFirestore.getInstance()
+    val listaEquipos = mutableListOf<Equipo>()
+    val snapshot = db.collection("equipos")
+        .whereEqualTo("creador", userId)
+        .get()
+        .await()
+
+    if (!snapshot.isEmpty) {
+        for (document in snapshot.documents) {
+            val codigo = document.getString("codigo") ?: ""
+            val equipo = document.getString("equipo") ?: ""
+            val idDocumento = document.id
+            val creadorId = document.getString("creador") ?: ""
+
+            val userDocument = db.collection("users").document(creadorId)
+                .get()
+                .await()
+
+            val username = userDocument.getString("username") ?: ""
+            listaEquipos.add(Equipo(codigo, equipo, idDocumento, username))
+        }
+    }
+
+    return listaEquipos
+}
+
+suspend fun obtenerCompeticiones(userId: String): List<Comp> {
+    val db = FirebaseFirestore.getInstance()
+    val listaComp = mutableListOf<Comp>()
+    val snapshot = db.collection("competiciones")
+        .whereEqualTo("creador", userId)
+        .get()
+        .await()
+
+    if (!snapshot.isEmpty) {
+        for (document in snapshot.documents) {
+            val equipos = document.get("equipos") as List<*>
+            val equiposExistentes = mutableListOf<String>()
+            val tasks = mutableListOf<Task<DocumentSnapshot>>()
+
+            equipos.forEach { idEquipo ->
+                val equipoRef = db.collection("equipos").document(idEquipo.toString())
+                val task = equipoRef.get()
+                tasks.add(task)
+                task.addOnSuccessListener { equipoDocument ->
+                    if (equipoDocument.exists()) {
+                        equiposExistentes.add(idEquipo.toString())
+                    }
+                }
+            }
+
+            Tasks.whenAllSuccess<DocumentSnapshot>(tasks).addOnSuccessListener {
+                if (equipos.size != equiposExistentes.size) {
+                    document.reference.update("equipos", equiposExistentes)
+                }
+            }
+
+            val codigo = document.getString("codigo") ?: ""
+            val comp = document.getString("competicion") ?: ""
+            val idDocumento = document.id
+            val creadorId = document.getString("creador") ?: ""
+
+            val userDocument = db.collection("users").document(creadorId)
+                .get()
+                .await()
+
+            val username = userDocument.getString("username") ?: ""
+            listaComp.add(Comp(codigo, comp, idDocumento, username))
+        }
+    }
+    return listaComp
 }
 
 data class Equipo(
