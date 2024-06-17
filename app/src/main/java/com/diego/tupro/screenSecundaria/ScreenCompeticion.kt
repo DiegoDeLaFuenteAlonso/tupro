@@ -615,7 +615,7 @@ suspend fun getClasificacion(idComp: String): List<ItemClasificacion> {
         )
     }
 
-    return clasificacion
+    return clasificacion.sortedByDescending { it.puntos }
 }
 
 data class ItemClasificacion(

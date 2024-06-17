@@ -1,5 +1,6 @@
 package com.diego.tupro.screenSecundaria
 
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -43,6 +44,7 @@ import com.diego.tupro.Constantes
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import android.content.Context
+import android.net.ConnectivityManager
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.TextButton
@@ -267,6 +269,7 @@ fun cambiarPass(
     }
 }
 
+@SuppressLint("ServiceCast")
 fun singIn(
     textoCorreo: String,
     textoPass: String,
@@ -285,6 +288,18 @@ fun singIn(
 
     Log.d("Inicio_Sesion", "Comienzo inicio sesion")
     try {
+        // Comprobar la conectividad a Internet
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetworkInfo
+        val isConnected = activeNetwork?.isConnectedOrConnecting == true
+
+        if (!isConnected) {
+            // No hay conexión a Internet
+            actualizarTextoSnackbar("No hay conexión a Internet")
+            botonesActivos(true)
+            return
+        }
+
         if (textoCorreo.isEmpty() || textoPass.isEmpty()) {
             Log.d("Inicio_Sesion", "Campos de inicio sesion vacios")
             if (textoCorreo.isEmpty()){

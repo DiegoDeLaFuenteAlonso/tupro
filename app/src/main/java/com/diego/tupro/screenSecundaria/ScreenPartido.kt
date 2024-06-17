@@ -156,7 +156,7 @@ fun ScreenPartido(navController: NavController, idPartido: String, creadorNombre
                     },
                     actions = {
                         if (!isLoadingPartido.value && user["username"] == creadorNombre) {
-                            if (partido.value.estado != "nuevo") {
+                            if (partido.value.estado != "nuevo" && partido.value.estado != "finalizado") {
                                 IconButton(onClick = { expandedEdit = true }) {
                                     Icon(Icons.Filled.Edit, contentDescription = "editar partido")
                                 }
@@ -349,7 +349,7 @@ fun BodyContentPartido(
 
     LaunchedEffect(comprobarComp.value) {
         if (comprobarComp.value != null) {
-            if (existeCompeticion(comprobarComp.value)) {
+            if (existeCompeticion(comprobarComp.value, context)) {
                 navController.navigate("${AppScreens.ScreenCompeticion.route}/${comp.codigo}/${comp.creador}/${comp.nombre}/${comp.idDocumento}")
             } else {
                 Toast.makeText(context, "competición no encontrada", Toast.LENGTH_SHORT).show()
@@ -359,7 +359,7 @@ fun BodyContentPartido(
 
     LaunchedEffect(comprobarEquipoLocal.value) {
         if (comprobarEquipoLocal.value != null) {
-            if (existeEquipo(comprobarEquipoLocal.value)) {
+            if (existeEquipo(comprobarEquipoLocal.value, context)) {
                 navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoLocal.codigo}/${equipoLocal.creador}/${equipoLocal.equipo}/${equipoLocal.idDocumento}")
             } else {
                 Toast.makeText(context, "equipo no encontrado", Toast.LENGTH_SHORT).show()
@@ -369,7 +369,7 @@ fun BodyContentPartido(
 
     LaunchedEffect(comprobarEquipoVisitante.value) {
         if (comprobarEquipoVisitante.value != null) {
-            if (existeEquipo(comprobarEquipoVisitante.value)) {
+            if (existeEquipo(comprobarEquipoVisitante.value, context)) {
                 navController.navigate("${AppScreens.ScreenEquipo.route}/${equipoVisitante.codigo}/${equipoVisitante.creador}/${equipoVisitante.equipo}/${equipoVisitante.idDocumento}")
             } else {
                 Toast.makeText(context, "equipo no encontrado", Toast.LENGTH_SHORT).show()

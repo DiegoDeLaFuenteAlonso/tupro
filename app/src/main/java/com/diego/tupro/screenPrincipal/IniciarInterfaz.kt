@@ -1,6 +1,8 @@
 package com.diego.tupro.screenPrincipal
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.net.ConnectivityManager
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,6 +64,8 @@ import com.diego.tupro.Constantes
 import com.diego.tupro.navigation.AppScreens
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
 
@@ -105,7 +109,7 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
 
     LaunchedEffect(comprobarComp.value) {
         if (comprobarComp.value != null) {
-            if (existeCompeticion(comprobarComp.value?.idDocumento)) {
+            if (existeCompeticion(comprobarComp.value?.idDocumento, context)) {
                 navController.navigate("screen_competicion/${comprobarComp.value?.codigo}/${comprobarComp.value?.creador}/${comprobarComp.value?.nombre}/${comprobarComp.value?.idDocumento}")
             } else {
                 Toast.makeText(context, "competición no encontrada", Toast.LENGTH_SHORT).show()
@@ -115,7 +119,7 @@ fun DibujarColumnaItems(resultBusqueda: SnapshotStateList<ItemBusqueda>, navCont
 
     LaunchedEffect(comprobarEquipo.value) {
         if (comprobarEquipo.value != null) {
-            if (existeEquipo(comprobarEquipo.value?.idDocumento)) {
+            if (existeEquipo(comprobarEquipo.value?.idDocumento, context)) {
                 navController.navigate("screen_equipo/${comprobarEquipo.value?.codigo}/${comprobarEquipo.value?.creador}/${comprobarEquipo.value?.nombre}/${comprobarEquipo.value?.idDocumento}")
             } else {
                 Toast.makeText(context, "equipo no encontrado", Toast.LENGTH_SHORT).show()
@@ -219,8 +223,10 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
     val context = LocalContext.current
 
     LaunchedEffect(idPartido.value) {
+        val idL = getIdEquipo(idPartido.value, true)
+        val idV = getIdEquipo(idPartido.value, false)
         if (idPartido.value != null) {
-            if (existePartido(idPartido.value)) {
+            if (existePartido(idPartido.value, context) && existeEquipo(idL, context) && existeEquipo(idV, context)) {
                 navController.navigate("screen_partido/${idPartido.value!!}/${creador.value}")
             } else {
                 Toast.makeText(context, "partido no encontrado", Toast.LENGTH_SHORT).show()
@@ -322,24 +328,75 @@ fun DibujarPartidos(listaPartidos: SnapshotStateList<Partido>, navController: Na
     }
 }
 
-suspend fun existePartido(idPartido: String?): Boolean {
+suspend fun getIdEquipo(idPartido: String?, esLocal: Boolean): String? {
+    val db = Firebase.firestore
+    var campo = "idVisitante"
+    if (esLocal) campo = "idLocal"
+
+    // Obtén una referencia al documento del partido
+    val partidoRef = idPartido?.let { db.collection("partidos").document(it) }
+
+    // Obtén el partido de la base de datos
+    val partido = partidoRef?.get()?.await()
+
+    // Comprueba si el partido existe
+    return if (partido?.exists() == true) {
+        // Devuelve el valor de "idLocal"
+        partido.getString(campo)
+    } else {
+        // El partido no existe
+        null
+    }
+}
+
+suspend fun existePartido(idPartido: String?, context: Context): Boolean {
     if (idPartido == null) return false
+
+    // Comprobar la conectividad a Internet
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = connectivityManager.activeNetworkInfo
+    val isConnected = activeNetwork?.isConnectedOrConnecting == true
+
+    if (!isConnected) {
+        // No hay conexión a Internet
+        return false
+    }
 
     val db = FirebaseFirestore.getInstance()
     val partidoDocument = db.collection("partidos").document(idPartido).get().await()
     return partidoDocument.exists()
 }
 
-suspend fun existeCompeticion(idComp: String?): Boolean {
+suspend fun existeCompeticion(idComp: String?, context: Context): Boolean {
     if (idComp == null) return false
+
+    // Comprobar la conectividad a Internet
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = connectivityManager.activeNetworkInfo
+    val isConnected = activeNetwork?.isConnectedOrConnecting == true
+
+    if (!isConnected) {
+        // No hay conexión a Internet
+        return false
+    }
 
     val db = FirebaseFirestore.getInstance()
     val competicionDocument = db.collection("competiciones").document(idComp).get().await()
     return competicionDocument.exists()
 }
 
-suspend fun existeEquipo(idEquipo: String?): Boolean {
+suspend fun existeEquipo(idEquipo: String?, context: Context): Boolean {
     if (idEquipo == null) return false
+
+    // Comprobar la conectividad a Internet
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = connectivityManager.activeNetworkInfo
+    val isConnected = activeNetwork?.isConnectedOrConnecting == true
+
+    if (!isConnected) {
+        // No hay conexión a Internet
+        return false
+    }
 
     val db = FirebaseFirestore.getInstance()
     val equipoDocument = db.collection("equipos").document(idEquipo).get().await()

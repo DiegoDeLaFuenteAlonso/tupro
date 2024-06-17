@@ -1,6 +1,8 @@
 package com.diego.tupro.screenSecundaria
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.net.ConnectivityManager
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -279,6 +281,7 @@ fun ScreenRegistro(navController: NavController) {
     }
 }
 
+@SuppressLint("ServiceCast")
 fun registrarUsuario(
     textoUsuario: String,
     textoCorreo: String,
@@ -303,7 +306,19 @@ fun registrarUsuario(
 
     Log.w("registro", "Inicio de registro")
     try {
-        // ya es trim aqui
+        // Comprobar la conectividad a Internet
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = connectivityManager.activeNetworkInfo
+        val isConnected = activeNetwork?.isConnectedOrConnecting == true
+
+        if (!isConnected) {
+            // No hay conexión a Internet
+            actualizarTextoSnackbar("No hay conexión a Internet")
+            botonesActivos(true)
+            return
+        }
+
+        // El resto de tu código...
         if (textoUsuario.isEmpty() || textoCorreo.isEmpty() || textoPass.isEmpty() || textoConfirmPass.isEmpty()) {
             Log.d("registro", "Todos los campos deben estar rellenos")
             if (textoUsuario.isEmpty()) {
@@ -395,7 +410,6 @@ fun registrarUsuario(
     }
     botonesActivos(true)
 }
-
 
 fun isPasswordStrong(password: String): Boolean {
     val passwordPattern = Pattern.compile(
