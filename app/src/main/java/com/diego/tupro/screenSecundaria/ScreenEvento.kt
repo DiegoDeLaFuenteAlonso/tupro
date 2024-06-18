@@ -219,15 +219,15 @@ suspend fun crearEvento(idPartido: String, minuto: String, titulo: String, texto
     if (Firebase.auth.currentUser?.uid != null) {
         val db = Firebase.firestore
 
-        // Obtén el contador actual
+        // contador actual
         val counterRef = db.collection("counters").document("equiposCounter")
         val counterSnapshot = counterRef.get().await()
         val currentCounter = counterSnapshot.getLong("counter") ?: 0
 
-        // Incrementa el contador
+        // Incrementar el contador
         counterRef.update("counter", currentCounter + 1)
 
-        // Crea el nuevo evento
+        // nuevo evento
         val nuevoEvento = hashMapOf(
             "creador" to Firebase.auth.currentUser?.uid,
             "minuto" to minuto.toInt(),
@@ -238,7 +238,7 @@ suspend fun crearEvento(idPartido: String, minuto: String, titulo: String, texto
             "tipoEquipo" to tipoEquipo
         )
 
-        // Añade el nuevo evento a la colección "eventos"
+        // Añadir nuevo evento a la colección "eventos"
         db.collection("eventos").document(currentCounter.toString()).set(nuevoEvento)
     }
 }

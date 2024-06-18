@@ -52,8 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
@@ -85,7 +85,6 @@ fun ScreenRegistro(navController: NavController) {
     val context = LocalContext.current
 
     val softwareKeyboardController = LocalSoftwareKeyboardController.current
-
 
     Surface {
         Column(
@@ -318,7 +317,6 @@ fun registrarUsuario(
             return
         }
 
-        // El resto de tu código...
         if (textoUsuario.isEmpty() || textoCorreo.isEmpty() || textoPass.isEmpty() || textoConfirmPass.isEmpty()) {
             Log.d("registro", "Todos los campos deben estar rellenos")
             if (textoUsuario.isEmpty()) {

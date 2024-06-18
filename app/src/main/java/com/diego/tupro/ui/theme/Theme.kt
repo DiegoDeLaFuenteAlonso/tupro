@@ -92,12 +92,6 @@ fun TuproTheme(
         darkTheme -> DarkColors
         else -> LightColors
     }
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            // setUpEdgeToEdge(view, darkTheme)
-        }
-    }
 
     MaterialTheme(
         colorScheme = colorScheme,

@@ -47,8 +47,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
@@ -239,7 +239,7 @@ fun crearEquipo(
     } else {
         // Comprueba si el usuario está autenticado
         if (currentUser != null) {
-            // Obtén el contador actual
+            // contador actual
             softwareKeyboardController?.hide()
             val counterRef = db.collection("counters").document("equiposCounter")
             db.runTransaction { transaction ->
@@ -247,7 +247,7 @@ fun crearEquipo(
                 val newCounter = snapshot.getLong("counter")?.plus(1) ?: 0
                 transaction.update(counterRef, "counter", newCounter)
 
-                // Usa el contador como el ID del nuevo documento
+                // contador como el ID del nuevo documento
                 val equipo = hashMapOf(
                     "codigo" to textoCodigo,
                     "equipo" to textoEquipo,

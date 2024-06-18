@@ -76,9 +76,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.android.gms.tasks.Task
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.auth.FirebaseAuth
@@ -602,8 +602,6 @@ fun BodyContentPerfil(
                 state = pagerState,
                 modifier = Modifier
                     .fillMaxSize()
-                    //.weight(1f)
-                    //.padding(innerPadding)
             ) { index ->
                 val auth = FirebaseAuth.getInstance()
                 val db = FirebaseFirestore.getInstance()
@@ -754,7 +752,6 @@ fun BodyContentPerfil(
                                                     } else {
                                                         selecComp.add(comp)
                                                     }
-                                                    // TODO comprobar que existe
                                                 } else {navController.navigate("screen_competicion/${comp.codigo}/${comp.creador}/${comp.nombre}/${comp.idDocumento}")}
                                             },
                                             onLongClick = {

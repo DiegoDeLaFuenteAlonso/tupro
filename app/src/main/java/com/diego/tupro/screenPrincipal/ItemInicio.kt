@@ -46,7 +46,6 @@ import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -121,8 +120,7 @@ fun BodyContentInicio(padding: PaddingValues, navController: NavController) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        // tint = colorScheme.onSecondaryContainer
+                        modifier = Modifier.size(48.dp)
                     )
                 }
                 ElevatedButton(

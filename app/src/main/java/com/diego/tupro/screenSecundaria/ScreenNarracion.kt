@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.diego.tupro.Constantes
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
@@ -176,12 +175,12 @@ suspend fun crearNarracion(idPartido: String, minuto: String, titulo: String, te
     if (Firebase.auth.currentUser?.uid != null) {
         val db = Firebase.firestore
 
-        // Obtén el contador actual
+        // contador actual
         val counterRef = db.collection("counters").document("equiposCounter")
         val counterSnapshot = counterRef.get().await()
         val currentCounter = counterSnapshot.getLong("counter") ?: 0
 
-        // Incrementa el contador
+        // Incrementar el contador
         counterRef.update("counter", currentCounter + 1)
 
         val nuevoEvento = hashMapOf(
