@@ -6,17 +6,19 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.BitmapDrawable
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import android.util.Log
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Sports
-import androidx.core.app.NotificationCompat
 
 class ActualizarMinutosService : Service() {
 
@@ -66,18 +68,18 @@ class ActualizarMinutosService : Service() {
     }
 
     suspend fun actualizarMinutos(idPartido: String) {
-        // Obtén una referencia a la base de datos de Firestore
+        // referencia a la base de datos de Firestore
         val db = Firebase.firestore
 
-        // Obtén una referencia al documento del partido
+        // referencia al documento del partido
         val partidoRef = db.collection("partidos").document(idPartido)
 
-        // Obtén el partido de la base de datos
+        // partido de la base de datos
         val partido = partidoRef.get().await()
 
         // Comprueba si el partido existe
         if (partido.exists()) {
-            // Obtén el valor actual de "minutos"
+            // valor actual de "minutos"
             val minutosActuales = partido.getLong("minutos") ?: 0
 
             // Incrementa "minutos" en 1

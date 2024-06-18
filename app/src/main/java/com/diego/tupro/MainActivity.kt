@@ -10,8 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.navigation.AppNavigation
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.accompanist.systemuicontroller.rememberSystemUiController
 
 class MainActivity : ComponentActivity() {
@@ -20,8 +20,6 @@ class MainActivity : ComponentActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         setContent {
             TuproTheme {
-                // A surface container using the 'background' color from the theme
-                // FirebaseApp.initializeApp(applicationContext)
                 IniciarApp()
             }
         }
