@@ -733,30 +733,30 @@ fun MostrarComentarios(comentarios: List<Comentario>) {
 suspend fun verificarEquiposCompeticion(idPartido: String) {
     val db = FirebaseFirestore.getInstance()
 
-    // Obtén el documento del partido
+    // documento del partido
     val partidoDocumentRef = db.collection("partidos").document(idPartido)
     val partidoDocument = partidoDocumentRef.get().await()
 
-    // Obtén los IDs de los equipos local y visitante, y la competición
+    // IDs de los equipos local y visitante, y la competición
     val idLocal = partidoDocument.getString("idLocal") ?: ""
     val idVisitante = partidoDocument.getString("idVisitante") ?: ""
     val idComp = partidoDocument.getString("idComp") ?: ""
 
-    // Verifica si el equipo local existe
+    // el equipo local existe
     val equipoLocalDocument = db.collection("equipos").document(idLocal).get().await()
     if (!equipoLocalDocument.exists()) {
         // Si el equipo local no existe, actualiza el campo "idLocal" a una cadena vacía
         partidoDocumentRef.update("idLocal", "").await()
     }
 
-    // Verifica si el equipo visitante existe
+    // el equipo visitante existe
     val equipoVisitanteDocument = db.collection("equipos").document(idVisitante).get().await()
     if (!equipoVisitanteDocument.exists()) {
         // Si el equipo visitante no existe, actualiza el campo "idVisitante" a una cadena vacía
         partidoDocumentRef.update("idVisitante", "").await()
     }
 
-    // Verifica si la competición existe
+    // la competición existe
     val competicionDocument = db.collection("competiciones").document(idComp).get().await()
     if (!competicionDocument.exists()) {
         // Si la competición no existe, actualiza el campo "idComp" a una cadena vacía

@@ -47,9 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.ItemBusqueda
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -75,7 +75,6 @@ fun ScreenSeleccionarFecha(navController: NavController, idComp: String, idLocal
                         Text(
                             text = "Selecciona fecha y hora",
                             fontSize = 26.sp,
-                            //fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -262,9 +261,7 @@ fun BodyContentScreenSeleccionarFecha(
                         readOnly = true,
                         modifier = Modifier
                             .weight(0.3f)
-                            .fillMaxWidth(),
-                        //textAlign = TextAlign.Center
-                        //enabled = false
+                            .fillMaxWidth()
                     )
 
                     IconButton(
@@ -350,16 +347,16 @@ suspend fun crearPartido(idComp: String, idLocal: String, idVisitante: String, f
     val auth = Firebase.auth
 
     return try {
-        // Obtén el contador actual
+        // contador actual
         val counterRef = db.collection("counters").document("equiposCounter")
         val counterSnapshot = counterRef.get().await()
         val currentCounter = counterSnapshot.getLong("counter") ?: 0
 
-        // Incrementa el contador
+        // Incrementar el contador
         val newCounter = currentCounter + 1
         counterRef.update("counter", newCounter)
 
-        // Crea el nuevo partido
+        // nuevo partido
         val partido = hashMapOf(
             "creador" to auth.currentUser?.uid,
             "idComp" to idComp,
@@ -375,7 +372,7 @@ suspend fun crearPartido(idComp: String, idLocal: String, idVisitante: String, f
             "ganador" to ""
         )
 
-        // Guarda el nuevo partido en la colección "partidos"
+        // nuevo partido en la colección "partidos"
         db.collection("partidos").document(newCounter.toString()).set(partido).await()
 
         true  // Devuelve true si la operación se completó con éxito

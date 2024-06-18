@@ -29,9 +29,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.auth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.firestore
@@ -172,7 +172,6 @@ fun reenviarCorreo(actualizarMensaje: (String) -> Unit) {
     auth.currentUser?.sendEmailVerification()?.addOnCompleteListener { task ->
         if (task.isSuccessful) {
             Log.d("verificacion", "Correo de verificación reenviado")
-            //actualizarMensaje("Correo reenviado")
         } else {
             Log.d("verificacion", "Error al reenviar el correo de verificación")
             actualizarMensaje("Error al enviar el correo")
@@ -212,7 +211,7 @@ fun guardarSesion(context: Context) {
     val db = com.google.firebase.Firebase.firestore
     val auth = com.google.firebase.Firebase.auth
 
-    // Obtener el nombre de usuario desde Firestore
+    // nombre de usuario desde Firestore
     db.collection("users").document(auth.uid!!)
         .get()
         .addOnSuccessListener { document ->
@@ -238,8 +237,7 @@ fun guardarSesion(context: Context) {
 fun GreetingPreviewVerificacion() {
     TuproTheme(darkTheme = false) {
         val navController = rememberNavController()
-        //val context = LocalContext.current
-        ScreenVerificacion(navController /*context*/)
+        ScreenVerificacion(navController)
     }
 }
 
@@ -248,7 +246,6 @@ fun GreetingPreviewVerificacion() {
 fun GreetingPreviewDarkVerificacion() {
     TuproTheme(darkTheme = true) {
         val navController = rememberNavController()
-        //val context = LocalContext.current
-        ScreenVerificacion(navController /*context*/)
+        ScreenVerificacion(navController)
     }
 }

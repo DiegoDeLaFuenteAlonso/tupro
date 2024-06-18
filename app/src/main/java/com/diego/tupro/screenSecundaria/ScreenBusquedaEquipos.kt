@@ -53,9 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.Equipo
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
@@ -64,7 +64,6 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScreenBusquedaEquipos(navController: NavController, competicion: String?, codigo: String?) {
-
     Scaffold(
         topBar = {
             Column {
@@ -82,7 +81,6 @@ fun ScreenBusquedaEquipos(navController: NavController, competicion: String?, co
     ) { innerPadding ->
         BodyContentPerfil(innerPadding, competicion, codigo, navController)
     }
-
 }
 
 @Composable
@@ -403,11 +401,9 @@ fun BodyContentPerfil(
                             )
                             transaction.set(competicionesRef, competicionData)
                         }.addOnSuccessListener {
-                            /*TODO*/
                             Log.d("TAG", "Transaction success!")
                             Constantes.reiniciarNavegacion(navController)
                         }.addOnFailureListener { e ->
-                            /*TODO*/
                             Log.w("TAG", "Transaction failure.", e)
                         }
                         botonesActivos = true

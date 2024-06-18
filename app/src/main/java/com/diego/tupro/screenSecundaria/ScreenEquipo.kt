@@ -1,7 +1,6 @@
 package com.diego.tupro.screenSecundaria
 
 import android.annotation.SuppressLint
-import android.util.Log
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,7 +55,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.navigation.AppScreens
 import com.diego.tupro.screenPrincipal.DibujarColumnaItems
@@ -65,6 +63,7 @@ import com.diego.tupro.screenPrincipal.Equipo
 import com.diego.tupro.screenPrincipal.ItemBusqueda
 import com.diego.tupro.screenPrincipal.Partido
 import com.diego.tupro.screenPrincipal.TabItem
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -390,7 +389,7 @@ suspend fun getPartidosLocal(idEquipo: String): SnapshotStateList<Partido> {
     val db = Firebase.firestore
     val partidos = mutableStateListOf<Partido>()
 
-    // Realiza una consulta a la colección "partidos"
+    // una consulta a la colección "partidos"
     val partidosSnapshot = db.collection("partidos")
         .whereEqualTo("idLocal", idEquipo)
         .get()
@@ -402,13 +401,13 @@ suspend fun getPartidosLocal(idEquipo: String): SnapshotStateList<Partido> {
         val idVisitante = partidoDocument.getString("idVisitante") ?: "eliminado"
         val idCreador = partidoDocument.getString("creador") ?: "eliminado"
 
-        // Realiza consultas a las colecciones "competiciones" y "equipos"
+        // consultas a las colecciones "competiciones" y "equipos"
         val competicionDocument = db.collection("competiciones").document(idComp).get().await()
         val localDocument = db.collection("equipos").document(idLocal).get().await()
         val visitanteDocument = db.collection("equipos").document(idVisitante).get().await()
         val creadorDocument = db.collection("users").document(idCreador).get().await()
 
-        // Crea el objeto Partido
+        // objeto Partido
         val partido = Partido(
             idPartido = partidoDocument.id,
             competicion = competicionDocument.getString("competicion") ?: "eliminado",
@@ -424,7 +423,7 @@ suspend fun getPartidosLocal(idEquipo: String): SnapshotStateList<Partido> {
             ganador = partidoDocument.getString("ganador") ?: ""
         )
 
-        // Añade el objeto Partido a la lista
+        // Añadir objeto Partido a la lista
         partidos += partido
     }
 
@@ -435,7 +434,7 @@ suspend fun getPartidosVisitante(idEquipo: String): SnapshotStateList<Partido> {
     val db = Firebase.firestore
     val partidos = mutableStateListOf<Partido>()
 
-    // Realiza una consulta a la colección "partidos"
+    // consulta a la colección "partidos"
     val partidosSnapshot = db.collection("partidos")
         .whereEqualTo("idVisitante", idEquipo)
         .get()
@@ -447,13 +446,13 @@ suspend fun getPartidosVisitante(idEquipo: String): SnapshotStateList<Partido> {
         val idVisitante = partidoDocument.getString("idVisitante") ?: "eliminado"
         val idCreador = partidoDocument.getString("creador") ?: "eliminado"
 
-        // Realiza consultas a las colecciones "competiciones" y "equipos"
+        // consultas a las colecciones "competiciones" y "equipos"
         val competicionDocument = db.collection("competiciones").document(idComp).get().await()
         val localDocument = db.collection("equipos").document(idLocal).get().await()
         val visitanteDocument = db.collection("equipos").document(idVisitante).get().await()
         val creadorDocument = db.collection("users").document(idCreador).get().await()
 
-        // Crea el objeto Partido
+        // objeto Partido
         val partido = Partido(
             idPartido = partidoDocument.id,
             competicion = competicionDocument.getString("competicion") ?: "eliminado",
@@ -469,7 +468,7 @@ suspend fun getPartidosVisitante(idEquipo: String): SnapshotStateList<Partido> {
             ganador = partidoDocument.getString("ganador") ?: ""
         )
 
-        // Añade el objeto Partido a la lista
+        // añadir objeto Partido a la lista
         partidos += partido
     }
 

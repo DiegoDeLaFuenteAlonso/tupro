@@ -62,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.SessionManager
 import com.diego.tupro.navigation.AppScreens
@@ -70,6 +69,7 @@ import com.diego.tupro.screenPrincipal.Comp
 import com.diego.tupro.screenPrincipal.DibujarPartidos
 import com.diego.tupro.screenPrincipal.Partido
 import com.diego.tupro.screenPrincipal.TabItem
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -205,7 +205,6 @@ fun ScreenCompeticion(
 fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavController, comp: Comp) {
     val isLoadingPartido = remember { mutableStateOf(true) }
     val partidosComp = remember { mutableStateListOf<Partido>() }
-    // val buscarUsuario = remember { mutableStateOf(false) }
     val idCreador = remember { mutableStateOf<String?>(null) }
     val clasificacion = remember { mutableStateListOf<ItemClasificacion>() }
     val isLoadingClasificacion = remember { mutableStateOf(true) }
@@ -214,13 +213,6 @@ fun BodyContentCompeticion(innerPadding: PaddingValues, navController: NavContro
         partidosComp.addAll(getPartidosComp(comp.idDocumento))
         isLoadingPartido.value = false
     }
-    /*
-    LaunchedEffect(buscarUsuario) {
-        if (buscarUsuario.value) {
-            getUsuario(comp.creador).let { navController.navigate("${AppScreens.ScreenPerfil.route}/${comp.creador}/${it}") }
-            buscarUsuario.value = false
-        }
-    }*/
     LaunchedEffect(comp.idDocumento) {
         limpiarEquiposCompeticion(comp.idDocumento)
         clasificacion.addAll(getClasificacion(comp.idDocumento))

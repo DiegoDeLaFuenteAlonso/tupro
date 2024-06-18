@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
 import com.diego.tupro.Constantes
 import com.diego.tupro.screenPrincipal.ItemBusqueda
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.Locale
@@ -68,7 +68,6 @@ fun ScreenCrearPartido(navController: NavController, idComp: String) {
                         Text(
                             text = "Selecciona los equipos",
                             fontSize = 26.sp,
-                            //fontWeight = FontWeight.Bold,
                             color = colorScheme.primary,
                         )
                     }

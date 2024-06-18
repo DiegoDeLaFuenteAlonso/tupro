@@ -45,7 +45,6 @@ import kotlinx.coroutines.withContext
 @Composable
 fun ItemBuscar(navController: NavController) {
     Scaffold (
-        // containerColor = MaterialTheme.colorScheme.surfaceVariant,
         topBar = {
             Column {
                 BarraSuperior("Buscar")

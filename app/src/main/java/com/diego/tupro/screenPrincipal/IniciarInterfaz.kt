@@ -22,15 +22,18 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.SavedSearch
 import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -38,30 +41,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.diego.tupro.ui.theme.TuproTheme
-import androidx.compose.material.icons.filled.SavedSearch
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.OutlinedCard
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import com.diego.tupro.Constantes
-import com.diego.tupro.navigation.AppScreens
+import com.diego.tupro.ui.theme.TuproTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
@@ -183,13 +182,9 @@ fun BarraInferior(navController: NavController) {
         BottomNavigationItem("Perfil", Icons.Filled.AccountCircle, Icons.Outlined.AccountCircle)
     )
     var selectedItemIndex by rememberSaveable { mutableStateOf(0) }
-
-    // Obtiene la entrada actual en la pila de retroceso
     val backStackEntry = navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry.value?.destination?.route
 
-    // Actualiza el índice del elemento seleccionado en la barra de navegación
-    // basándose en la ruta actual
     LaunchedEffect(currentRoute) {
         when (currentRoute) {
             "item_inicio" -> selectedItemIndex = 0
@@ -333,15 +328,14 @@ suspend fun getIdEquipo(idPartido: String?, esLocal: Boolean): String? {
     var campo = "idVisitante"
     if (esLocal) campo = "idLocal"
 
-    // Obtén una referencia al documento del partido
+    // referencia al documento del partido
     val partidoRef = idPartido?.let { db.collection("partidos").document(it) }
 
-    // Obtén el partido de la base de datos
+    // partido de la base de datos
     val partido = partidoRef?.get()?.await()
 
     // Comprueba si el partido existe
     return if (partido?.exists() == true) {
-        // Devuelve el valor de "idLocal"
         partido.getString(campo)
     } else {
         // El partido no existe
